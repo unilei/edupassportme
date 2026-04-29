@@ -13,9 +13,8 @@ test.describe("Search", () => {
   });
 
   test("should display results when searching", async ({ page }) => {
-    await page.goto("/search?q=test");
-    // Wait for either results or no-results message
-    await page.waitForSelector('[class*="grid"], [class*="text-center"]', { timeout: 10_000 });
+    await page.goto("/search?q=machine");
+    await expect(page.getByText("Machine Learning Specialization")).toBeVisible({ timeout: 10_000 });
   });
 
   test("should show search input on homepage", async ({ page }) => {
@@ -29,6 +28,6 @@ test.describe("Search", () => {
     const searchInput = page.locator('input[type="search"]').first();
     await searchInput.fill("python");
     await searchInput.press("Enter");
-    await expect(page).toHaveURL(/\/search\?q=python/);
+    await expect(page).toHaveURL(/\/courses\?q=python/);
   });
 });

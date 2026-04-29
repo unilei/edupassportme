@@ -31,7 +31,7 @@ export default function BillingPage() {
   const { data: session, status: authStatus } = useSession();
   const searchParams = useSearchParams();
   const [billing, setBilling] = useState<BillingData | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState("");
 
   const success = searchParams.get("success") === "true";
@@ -40,12 +40,18 @@ export default function BillingPage() {
   const isUser = !!userId && userId !== "admin";
 
   useEffect(() => {
-    if (!isUser) return;
+    if (authStatus === "loading") return;
+    if (!isUser) {
+      setBilling(null);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
     fetch("/api/user/billing")
       .then((r) => r.json())
       .then((d: BillingData) => setBilling(d))
       .finally(() => setLoading(false));
-  }, [isUser]);
+  }, [authStatus, isUser]);
 
   const handlePortal = async () => {
     setActionLoading("portal");
@@ -73,7 +79,7 @@ export default function BillingPage() {
     }
   };
 
-  if (authStatus === "loading" || loading) {
+  if (authStatus === "loading" || (isUser && loading)) {
     return (
       <div className="flex items-center justify-center py-24">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />

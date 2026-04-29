@@ -1,4 +1,4 @@
-import { ExternalLink, Ticket, Clock, ArrowUpRight } from "lucide-react";
+import { Ticket, Clock, ArrowUpRight } from "lucide-react";
 
 interface DealCardProps {
   deal: {

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ExternalLink, Star, Clock, MapPin, Tag, ArrowUpRight } from "lucide-react";
+import { Star, Clock, MapPin, Tag, ArrowUpRight } from "lucide-react";
 import { OptimizedImage } from "@/components/shared/OptimizedImage";
 import type { ListingType } from "@/generated/prisma/enums";
 import { SaveButtonWrapper } from "./SaveButtonWrapper";

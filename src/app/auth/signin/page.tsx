@@ -31,7 +31,7 @@ export default function SignInPage() {
 
     setLoading(false);
 
-    if (res?.error) {
+    if (!res?.ok || res.error) {
       setError("Invalid email or password");
       return;
     }
@@ -67,6 +67,7 @@ export default function SignInPage() {
                 <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input
                   id="email"
+                  name="email"
                   type="email"
                   placeholder="you@example.com"
                   value={email}
@@ -88,6 +89,7 @@ export default function SignInPage() {
                 <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
                 <Input
                   id="password"
+                  name="password"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
                   value={password}

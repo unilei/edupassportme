@@ -9,6 +9,7 @@ import { I18nProvider } from "@/lib/i18n/context";
 import { BottomNavWrapper } from "@/components/layout/BottomNavWrapper";
 import { getServerLocale } from "@/lib/i18n/server";
 import { ClientProviders } from "@/components/ClientProviders";
+import { AuthSessionProvider } from "@/components/AuthSessionProvider";
 
 const inter = Inter({
   variable: "--font-sans",
@@ -58,14 +59,16 @@ export default async function RootLayout({
     <html lang={locale} suppressHydrationWarning>
       <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider>
-          <I18nProvider initialLocale={locale}>
-            <div className="flex min-h-screen flex-col pb-14 md:pb-0">
-              <Header />
-              <main id="main-content" className="flex-1">{children}</main>
-              <Footer />
-              <BottomNavWrapper />
-            </div>
-          </I18nProvider>
+          <AuthSessionProvider>
+            <I18nProvider initialLocale={locale}>
+              <div className="flex min-h-screen flex-col pb-14 md:pb-0">
+                <Header />
+                <main id="main-content" className="flex-1">{children}</main>
+                <Footer />
+                <BottomNavWrapper />
+              </div>
+            </I18nProvider>
+          </AuthSessionProvider>
         </ThemeProvider>
         <ClientProviders />
         <script
