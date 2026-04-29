@@ -39,3 +39,14 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+/src/generated/prisma
+
+# playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/e2e/.auth/
+
+# env example should be committed
+!.env.example
