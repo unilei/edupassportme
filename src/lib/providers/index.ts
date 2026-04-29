@@ -6,3 +6,5 @@ export { RssProvider } from "./rss";
 export { syncAllProviders, syncSingleProvider } from "./registry";
 export type { RawListing, SyncResult, ProviderConfig } from "./types";
 export type { ProviderSyncResult } from "./registry";
+export * from "./normalization";
+export * from "./compliance";
