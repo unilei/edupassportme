@@ -93,6 +93,13 @@ model Provider {
   apiBaseUrl      String?
   isActive        Boolean        @default(true)
   syncFrequency   String         @default("daily") // hourly | daily | weekly
+  authType             String    @default("none") // none | api_key | oauth | basic | token
+  rateLimitPerMinute   Int?
+  syncCursor           String?
+  lastSuccessfulSyncAt DateTime?
+  lastFailedSyncAt     DateTime?
+  failureCount         Int       @default(0)
+  complianceNotes      String?
   lastSyncAt      DateTime?
   affiliateTag    String?
   commissionRate  Float?         // e.g. 0.10 = 10%
@@ -136,6 +143,24 @@ model Listing {
   viewCount    Int            @default(0)
   clickCount   Int            @default(0)
   externalId   String?
+  status          String    @default("active") // active | stale | expired | hidden | needs_review
+  canonicalUrl    String?
+  fingerprint     String?
+  sourceUpdatedAt DateTime?
+  publishedAt     DateTime?
+  lastSeenAt      DateTime?
+  qualityScore    Float     @default(0)
+  companyName     String?
+  salaryMin       Float?
+  salaryMax       Float?
+  salaryCurrency  String?
+  couponCode      String?
+  discountText    String?
+  venueName       String?
+  country         String?
+  region          String?
+  metadata        Json?
+  compliance      Json?
   providerId   String
   provider     Provider       @relation(fields: [providerId], references: [id])
   categoryId   String?
@@ -159,6 +184,11 @@ model Listing {
   @@index([createdAt])
   @@index([price])
   @@index([rating])
+  @@index([status])
+  @@index([lastSeenAt])
+  @@index([expiresAt])
+  @@index([fingerprint])
+  @@index([sourceUpdatedAt])
 }
 
 model ListingOffer {
@@ -308,6 +338,10 @@ model SyncLog {
   itemsFound   Int       @default(0)
   itemsAdded   Int       @default(0)
   itemsUpdated Int       @default(0)
+  itemsSkipped Int     @default(0)
+  itemsExpired Int     @default(0)
+  durationMs   Int?
+  details      Json?
   error        String?
   startedAt    DateTime  @default(now())
   completedAt  DateTime?
