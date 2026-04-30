@@ -3,6 +3,10 @@ import type { BaseProvider } from "./base";
 import { UdemyProvider } from "./udemy";
 import { CourseraProvider } from "./coursera";
 import { RssProvider } from "./rss";
+import { RemotiveProvider } from "./remotive";
+import { UsaJobsProvider } from "./usajobs";
+import { TicketmasterProvider } from "./ticketmaster";
+import { AwinOffersProvider } from "./awin";
 import { syncProvider } from "./sync";
 import type { SyncResult } from "./types";
 
@@ -27,6 +31,29 @@ function createProviderInstance(
       return new CourseraProvider({
         ...config,
         apiBaseUrl: config.apiBaseUrl || "https://api.coursera.org/api",
+      });
+
+    case "remotive":
+      return new RemotiveProvider(config);
+
+    case "usajobs":
+      return new UsaJobsProvider({
+        ...config,
+        apiKey: process.env.USAJOBS_API_KEY,
+        userAgent: process.env.USAJOBS_USER_AGENT,
+      });
+
+    case "ticketmaster":
+      return new TicketmasterProvider({
+        ...config,
+        apiKey: process.env.TICKETMASTER_API_KEY,
+      });
+
+    case "awin":
+      return new AwinOffersProvider({
+        ...config,
+        apiKey: process.env.AWIN_ACCESS_TOKEN,
+        publisherId: process.env.AWIN_PUBLISHER_ID,
       });
 
     // RSS-based providers can be added here
@@ -71,6 +98,17 @@ export async function syncSingleProvider(slug: string): Promise<ProviderSyncResu
     return { providerId: provider.id, providerName: provider.name, providerSlug: provider.slug, result: null, skipped: true, error: "No implementation available" };
   }
 
+  if (!instance.isConfigured()) {
+    return {
+      providerId: provider.id,
+      providerName: provider.name,
+      providerSlug: provider.slug,
+      result: null,
+      skipped: true,
+      error: instance.getMissingConfigReason() || "Provider is not configured",
+    };
+  }
+
   try {
     const result = await syncProvider(instance, provider.id);
     return { providerId: provider.id, providerName: provider.name, providerSlug: provider.slug, result, skipped: false };
@@ -101,6 +139,18 @@ export async function syncAllProviders(): Promise<ProviderSyncResult[]> {
         result: null,
         skipped: true,
         error: "No implementation available (manual provider)",
+      });
+      continue;
+    }
+
+    if (!instance.isConfigured()) {
+      results.push({
+        providerId: provider.id,
+        providerName: provider.name,
+        providerSlug: provider.slug,
+        result: null,
+        skipped: true,
+        error: instance.getMissingConfigReason() || "Provider is not configured",
       });
       continue;
     }
