@@ -1,4 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { Prisma } from "@/generated/prisma/client";
 import type { BaseProvider } from "@/lib/providers/base";
 import type { RawListing } from "@/lib/providers/types";
 
@@ -171,7 +172,7 @@ describe("syncProvider", () => {
         sourceUpdatedAt: null,
         publishedAt: null,
         companyName: null,
-        compliance: null,
+        compliance: Prisma.DbNull,
         categoryId: null,
         metadata: {},
       }),
@@ -186,7 +187,7 @@ describe("syncProvider", () => {
     expect(mockUpdateManyListing).not.toHaveBeenCalled();
   });
 
-  it("does not count or mark a listing as seen when tag writes fail", async () => {
+  it("does not count a listing but keeps returned valid IDs seen when tag writes fail", async () => {
     mockFindListing.mockResolvedValue(null);
     mockCreateListing.mockResolvedValue({ id: "listing1" });
     mockCreateTags.mockRejectedValue(new Error("tag write failed"));
@@ -198,8 +199,31 @@ describe("syncProvider", () => {
     expect(result.errors).toEqual(["Intro to Python: tag write failed"]);
     expect(mockUpdateManyListing).toHaveBeenCalledWith(expect.objectContaining({
       where: expect.objectContaining({
-        externalId: { notIn: [] },
+        externalId: { notIn: ["external-1"] },
       }),
     }));
+  });
+
+  it("writes partial sync health without resetting provider success state", async () => {
+    mockFindListing.mockResolvedValue(null);
+    mockCreateListing.mockResolvedValue({ id: "listing1" });
+    mockCreateTags.mockRejectedValue(new Error("tag write failed"));
+
+    await syncProvider(makeProvider([raw]), "provider1");
+
+    expect(mockUpdateLog).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        status: "partial",
+        details: { errors: ["Intro to Python: tag write failed"] },
+      }),
+    }));
+    expect(mockUpdateProvider).toHaveBeenCalledWith({
+      where: { id: "provider1" },
+      data: {
+        lastSyncAt: expect.any(Date),
+      },
+    });
+    expect(mockUpdateProvider.mock.calls[0][0].data).not.toHaveProperty("lastSuccessfulSyncAt");
+    expect(mockUpdateProvider.mock.calls[0][0].data).not.toHaveProperty("failureCount");
   });
 });

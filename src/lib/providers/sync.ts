@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import type { Prisma } from "@/generated/prisma/client";
+import { Prisma } from "@/generated/prisma/client";
 import type { BaseProvider } from "./base";
 import type { RawListing, SyncResult } from "./types";
 import {
@@ -42,15 +42,18 @@ export async function syncProvider(
   try {
     const rawListings = await provider.fetchListings();
     result.itemsFound = rawListings.length;
-    const seenExternalIds: string[] = [];
+    const returnedExternalIds: string[] = [];
 
     for (const raw of rawListings) {
+      if (isValidRawListing(raw)) {
+        returnedExternalIds.push(raw.externalId);
+      }
+
       try {
         const outcome = await upsertListing(raw, providerId, provider.name);
         if (outcome === "added") result.itemsAdded++;
         if (outcome === "updated") result.itemsUpdated++;
         if (outcome === "skipped") result.itemsSkipped++;
-        if (outcome !== "skipped") seenExternalIds.push(raw.externalId);
       } catch (err) {
         const msg =
           err instanceof Error ? err.message : "Unknown error";
@@ -59,7 +62,7 @@ export async function syncProvider(
     }
 
     if (rawListings.length > 0) {
-      result.itemsExpired = await expireStaleListings(providerId, seenExternalIds);
+      result.itemsExpired = await expireStaleListings(providerId, returnedExternalIds);
     }
 
     await prisma.syncLog.update({
@@ -77,13 +80,16 @@ export async function syncProvider(
       },
     });
 
+    const syncCompletedAt = new Date();
     await prisma.provider.update({
       where: { id: providerId },
-      data: {
-        lastSyncAt: new Date(),
-        lastSuccessfulSyncAt: new Date(),
-        failureCount: 0,
-      },
+      data: result.errors.length > 0
+        ? { lastSyncAt: syncCompletedAt }
+        : {
+            lastSyncAt: syncCompletedAt,
+            lastSuccessfulSyncAt: syncCompletedAt,
+            failureCount: 0,
+          },
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
@@ -111,12 +117,16 @@ export async function syncProvider(
   return result;
 }
 
+function isValidRawListing(raw: RawListing): boolean {
+  return Boolean(raw.externalId && raw.title.trim() && raw.url.trim());
+}
+
 async function upsertListing(
   raw: RawListing,
   providerId: string,
   providerName: string
 ): Promise<"added" | "updated" | "skipped"> {
-  if (!raw.externalId || !raw.title.trim() || !raw.url.trim()) {
+  if (!isValidRawListing(raw)) {
     return "skipped";
   }
 
@@ -134,7 +144,7 @@ async function upsertListing(
   const metadata = (raw.metadata ?? {}) as Prisma.InputJsonValue;
   const compliance = raw.compliance
     ? ({ ...raw.compliance } as Prisma.InputJsonValue)
-    : (null as unknown as Prisma.InputJsonValue);
+    : Prisma.DbNull;
 
   const existing = await prisma.listing.findUnique({
     where: {
