@@ -3,11 +3,21 @@ import { prisma } from "@/lib/prisma";
 import { SITE_URL } from "@/lib/metadata";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const now = new Date();
   const [items, categories, tags, listings] = await Promise.all([
     prisma.item.findMany({ select: { slug: true, updatedAt: true } }),
     prisma.category.findMany({ select: { slug: true, updatedAt: true } }),
     prisma.tag.findMany({ select: { slug: true, createdAt: true } }),
-    prisma.listing.findMany({ select: { slug: true, updatedAt: true } }),
+    prisma.listing.findMany({
+      where: {
+        status: "active",
+        AND: [
+          { OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] },
+          { OR: [{ endDate: null }, { endDate: { gte: now } }] },
+        ],
+      },
+      select: { slug: true, updatedAt: true },
+    }),
   ]);
 
   const staticPages: MetadataRoute.Sitemap = [

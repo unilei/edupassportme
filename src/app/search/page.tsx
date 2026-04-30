@@ -53,12 +53,25 @@ async function SearchResults({ searchParams }: SearchPageProps) {
     );
   }
 
+  const now = new Date();
+  const activeListingWhere = {
+    status: "active" as const,
+    AND: [
+      { OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] },
+      { OR: [{ endDate: null }, { endDate: { gte: now } }] },
+    ],
+  };
   // Build where clause using Prisma contains (FTS raw query is in the API)
   const where: Record<string, unknown> = {
-    status: "active",
-    OR: [
-      { title: { contains: query, mode: "insensitive" } },
-      { description: { contains: query, mode: "insensitive" } },
+    ...activeListingWhere,
+    AND: [
+      ...activeListingWhere.AND,
+      {
+        OR: [
+          { title: { contains: query, mode: "insensitive" } },
+          { description: { contains: query, mode: "insensitive" } },
+        ],
+      },
     ],
   };
   if (typeFilter) where.type = typeFilter;
@@ -86,7 +99,7 @@ async function SearchResults({ searchParams }: SearchPageProps) {
     }),
     prisma.listing.groupBy({
       by: ["providerId"],
-      where: { status: "active" },
+      where: activeListingWhere,
       _count: true,
     }).then(async (groups) => {
       const providerIds = groups.map((g) => g.providerId);
@@ -103,14 +116,14 @@ async function SearchResults({ searchParams }: SearchPageProps) {
     }),
     prisma.listing.groupBy({
       by: ["level"],
-      where: { status: "active", level: { not: null } },
+      where: { ...activeListingWhere, level: { not: null } },
       _count: true,
     }).then((groups) =>
       groups.filter((g) => g.level).map((g) => ({ value: g.level!, label: g.level!, count: g._count }))
     ),
     prisma.listing.groupBy({
       by: ["type"],
-      where: { status: "active" },
+      where: activeListingWhere,
       _count: true,
     }).then((groups) =>
       groups.map((g) => ({

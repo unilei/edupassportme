@@ -89,8 +89,36 @@ describe("GET /api/search", () => {
       "active"
     );
     expect(mockedPrisma.$queryRawUnsafe).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining(`("expiresAt" IS NULL OR "expiresAt" >= NOW())`),
+      "python:*",
+      "active"
+    );
+    expect(mockedPrisma.$queryRawUnsafe).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining(`("endDate" IS NULL OR "endDate" >= NOW())`),
+      "python:*",
+      "active"
+    );
+    expect(mockedPrisma.$queryRawUnsafe).toHaveBeenNthCalledWith(
       2,
       expect.stringContaining(`l."status" = $2`),
+      "python:*",
+      "active",
+      12,
+      0
+    );
+    expect(mockedPrisma.$queryRawUnsafe).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining(`(l."expiresAt" IS NULL OR l."expiresAt" >= NOW())`),
+      "python:*",
+      "active",
+      12,
+      0
+    );
+    expect(mockedPrisma.$queryRawUnsafe).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining(`(l."endDate" IS NULL OR l."endDate" >= NOW())`),
       "python:*",
       "active",
       12,

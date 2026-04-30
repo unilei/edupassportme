@@ -80,6 +80,13 @@ export interface ProviderSyncResult {
   error?: string;
 }
 
+function fatalSyncError(result: SyncResult): string | undefined {
+  if (result.itemsFound === 0 && result.errors.length > 0) {
+    return result.errors.join("; ");
+  }
+  return undefined;
+}
+
 /**
  * Sync a single provider by its slug.
  */
@@ -111,7 +118,8 @@ export async function syncSingleProvider(slug: string): Promise<ProviderSyncResu
 
   try {
     const result = await syncProvider(instance, provider.id);
-    return { providerId: provider.id, providerName: provider.name, providerSlug: provider.slug, result, skipped: false };
+    const error = fatalSyncError(result);
+    return { providerId: provider.id, providerName: provider.name, providerSlug: provider.slug, result, skipped: false, ...(error ? { error } : {}) };
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
     return { providerId: provider.id, providerName: provider.name, providerSlug: provider.slug, result: null, skipped: false, error: msg };
@@ -157,7 +165,8 @@ export async function syncAllProviders(): Promise<ProviderSyncResult[]> {
 
     try {
       const result = await syncProvider(instance, provider.id);
-      results.push({ providerId: provider.id, providerName: provider.name, providerSlug: provider.slug, result, skipped: false });
+      const error = fatalSyncError(result);
+      results.push({ providerId: provider.id, providerName: provider.name, providerSlug: provider.slug, result, skipped: false, ...(error ? { error } : {}) });
     } catch (err) {
       const msg = err instanceof Error ? err.message : "Unknown error";
       results.push({ providerId: provider.id, providerName: provider.name, providerSlug: provider.slug, result: null, skipped: false, error: msg });

@@ -39,16 +39,27 @@ export async function GET(request: NextRequest) {
       try {
         const filters = search.filters as Record<string, string>;
         const since = search.lastAlertAt || search.createdAt;
+        const now = new Date();
 
         // Build a dynamic where clause from the saved search filters
         const where: Prisma.ListingWhereInput = {
+          status: "active",
           createdAt: { gt: since },
+          AND: [
+            { OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] },
+            { OR: [{ endDate: null }, { endDate: { gte: now } }] },
+          ],
         };
 
         if (search.query) {
-          where.OR = [
-            { title: { contains: search.query, mode: "insensitive" } },
-            { description: { contains: search.query, mode: "insensitive" } },
+          where.AND = [
+            ...(where.AND as Prisma.ListingWhereInput[]),
+            {
+              OR: [
+                { title: { contains: search.query, mode: "insensitive" } },
+                { description: { contains: search.query, mode: "insensitive" } },
+              ],
+            },
           ];
         }
         if (filters.type) where.type = filters.type as Prisma.ListingWhereInput["type"];

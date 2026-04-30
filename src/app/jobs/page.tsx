@@ -29,12 +29,25 @@ async function JobsContent({ searchParams }: PageProps) {
   const params = await searchParams;
   const query = params.q || "";
   const currentPage = Math.max(1, parseInt(params.page || "1", 10));
+  const now = new Date();
 
-  const where: Record<string, unknown> = { type: "job" as const, status: "active" };
+  const where: Record<string, unknown> = {
+    type: "job" as const,
+    status: "active",
+    AND: [
+      { OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] },
+      { OR: [{ endDate: null }, { endDate: { gte: now } }] },
+    ],
+  };
   if (query.trim()) {
-    where.OR = [
-      { title: { contains: query, mode: "insensitive" } },
-      { description: { contains: query, mode: "insensitive" } },
+    where.AND = [
+      ...(where.AND as Record<string, unknown>[]),
+      {
+        OR: [
+          { title: { contains: query, mode: "insensitive" } },
+          { description: { contains: query, mode: "insensitive" } },
+        ],
+      },
     ];
   }
 

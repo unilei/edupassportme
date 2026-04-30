@@ -18,6 +18,14 @@ const listingInclude = {
 } as const;
 
 async function HomeContent() {
+  const now = new Date();
+  const activeListingWhere = {
+    status: "active" as const,
+    AND: [
+      { OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] },
+      { OR: [{ endDate: null }, { endDate: { gte: now } }] },
+    ],
+  };
   const [
     courseCount,
     jobCount,
@@ -30,25 +38,25 @@ async function HomeContent() {
     activeDeals,
     editorialPicks,
   ] = await Promise.all([
-    prisma.listing.count({ where: { type: "course" } }),
-    prisma.listing.count({ where: { type: "job" } }),
-    prisma.listing.count({ where: { type: "event" } }),
+    prisma.listing.count({ where: { ...activeListingWhere, type: "course" } }),
+    prisma.listing.count({ where: { ...activeListingWhere, type: "job" } }),
+    prisma.listing.count({ where: { ...activeListingWhere, type: "event" } }),
     prisma.deal.count({ where: { isActive: true } }),
     prisma.provider.count({ where: { isActive: true } }),
     prisma.listing.findMany({
-      where: { type: "course" },
+      where: { ...activeListingWhere, type: "course" },
       orderBy: { rating: "desc" },
       take: 4,
       include: listingInclude,
     }),
     prisma.listing.findMany({
-      where: { type: "job" },
+      where: { ...activeListingWhere, type: "job" },
       orderBy: { createdAt: "desc" },
       take: 3,
       include: listingInclude,
     }),
     prisma.listing.findMany({
-      where: { type: "event" },
+      where: { ...activeListingWhere, type: "event" },
       orderBy: { startDate: "asc" },
       take: 3,
       include: listingInclude,

@@ -41,12 +41,26 @@ async function CoursesContent({ searchParams }: PageProps) {
   const providerSlug = params.provider || "";
   const level = params.level || "";
   const priceMax = params.priceMax || "";
+  const now = new Date();
 
-  const where: Record<string, unknown> = { type: "course" as const, status: "active" };
+  const activeCourseWhere = {
+    type: "course" as const,
+    status: "active" as const,
+    AND: [
+      { OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] },
+      { OR: [{ endDate: null }, { endDate: { gte: now } }] },
+    ],
+  };
+  const where: Record<string, unknown> = { ...activeCourseWhere };
   if (query.trim()) {
-    where.OR = [
-      { title: { contains: query, mode: "insensitive" } },
-      { description: { contains: query, mode: "insensitive" } },
+    where.AND = [
+      ...activeCourseWhere.AND,
+      {
+        OR: [
+          { title: { contains: query, mode: "insensitive" } },
+          { description: { contains: query, mode: "insensitive" } },
+        ],
+      },
     ];
   }
   if (providerSlug) {
@@ -79,7 +93,7 @@ async function CoursesContent({ searchParams }: PageProps) {
     }),
     prisma.listing.groupBy({
       by: ["providerId"],
-      where: { type: "course", status: "active" },
+      where: activeCourseWhere,
       _count: true,
     }).then(async (groups) => {
       const providerIds = groups.map((g) => g.providerId);
@@ -94,7 +108,7 @@ async function CoursesContent({ searchParams }: PageProps) {
     }),
     prisma.listing.groupBy({
       by: ["level"],
-      where: { type: "course", status: "active", level: { not: null } },
+      where: { ...activeCourseWhere, level: { not: null } },
       _count: true,
     }).then((groups) =>
       groups.filter((g) => g.level).map((g) => ({ value: g.level!, label: g.level!, count: g._count }))
