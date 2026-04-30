@@ -1,14 +1,13 @@
 import { prisma } from "@/lib/prisma";
+import type { Prisma } from "@/generated/prisma/client";
 import type { BaseProvider } from "./base";
 import type { RawListing, SyncResult } from "./types";
-
-function slugify(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "")
-    .slice(0, 120);
-}
+import {
+  canonicalizeUrl,
+  computeListingFingerprint,
+  scoreListingQuality,
+  slugifyListingTitle,
+} from "./normalization";
 
 async function ensureUniqueSlug(baseSlug: string): Promise<string> {
   let slug = baseSlug;
@@ -24,6 +23,7 @@ export async function syncProvider(
   provider: BaseProvider,
   providerId: string
 ): Promise<SyncResult> {
+  const startedAt = Date.now();
   const log = await prisma.syncLog.create({
     data: { providerId, status: "running" },
   });
@@ -40,11 +40,15 @@ export async function syncProvider(
   try {
     const rawListings = await provider.fetchListings();
     result.itemsFound = rawListings.length;
+    const seenExternalIds: string[] = [];
 
     for (const raw of rawListings) {
       try {
-        await upsertListing(raw, providerId);
-        result.itemsAdded++;
+        const outcome = await upsertListing(raw, providerId, provider.name);
+        if (outcome === "added") result.itemsAdded++;
+        if (outcome === "updated") result.itemsUpdated++;
+        if (outcome === "skipped") result.itemsSkipped++;
+        if (outcome !== "skipped") seenExternalIds.push(raw.externalId);
       } catch (err) {
         const msg =
           err instanceof Error ? err.message : "Unknown error";
@@ -52,20 +56,30 @@ export async function syncProvider(
       }
     }
 
+    result.itemsExpired = await expireStaleListings(providerId, seenExternalIds);
+
     await prisma.syncLog.update({
       where: { id: log.id },
       data: {
-        status: "success",
+        status: result.errors.length > 0 ? "partial" : "success",
         itemsFound: result.itemsFound,
         itemsAdded: result.itemsAdded,
         itemsUpdated: result.itemsUpdated,
+        itemsSkipped: result.itemsSkipped,
+        itemsExpired: result.itemsExpired,
+        details: { errors: result.errors },
+        durationMs: Date.now() - startedAt,
         completedAt: new Date(),
       },
     });
 
     await prisma.provider.update({
       where: { id: providerId },
-      data: { lastSyncAt: new Date() },
+      data: {
+        lastSyncAt: new Date(),
+        lastSuccessfulSyncAt: new Date(),
+        failureCount: 0,
+      },
     });
   } catch (err) {
     const msg = err instanceof Error ? err.message : "Unknown error";
@@ -76,7 +90,16 @@ export async function syncProvider(
       data: {
         status: "error",
         error: msg,
+        durationMs: Date.now() - startedAt,
         completedAt: new Date(),
+      },
+    });
+
+    await prisma.provider.update({
+      where: { id: providerId },
+      data: {
+        lastFailedSyncAt: new Date(),
+        failureCount: { increment: 1 },
       },
     });
   }
@@ -86,8 +109,29 @@ export async function syncProvider(
 
 async function upsertListing(
   raw: RawListing,
-  providerId: string
-): Promise<void> {
+  providerId: string,
+  providerName: string
+): Promise<"added" | "updated" | "skipped"> {
+  if (!raw.externalId || !raw.title.trim() || !raw.url.trim()) {
+    return "skipped";
+  }
+
+  const now = new Date();
+  const canonicalUrl = raw.canonicalUrl ?? canonicalizeUrl(raw.url);
+  const fingerprint = computeListingFingerprint({
+    type: raw.type,
+    title: raw.title,
+    canonicalUrl,
+    providerName,
+    location: raw.location,
+    startDate: raw.startDate,
+  });
+  const qualityScore = scoreListingQuality(raw);
+  const metadata = (raw.metadata ?? {}) as Prisma.InputJsonValue;
+  const compliance = raw.compliance
+    ? ({ ...raw.compliance } as Prisma.InputJsonValue)
+    : undefined;
+
   const existing = await prisma.listing.findUnique({
     where: {
       providerId_externalId: {
@@ -135,6 +179,24 @@ async function upsertListing(
         startDate: raw.startDate,
         endDate: raw.endDate,
         expiresAt: raw.expiresAt,
+        status: "active",
+        canonicalUrl,
+        fingerprint,
+        sourceUpdatedAt: raw.sourceUpdatedAt,
+        publishedAt: raw.publishedAt,
+        lastSeenAt: raw.lastSeenAt ?? now,
+        qualityScore,
+        companyName: raw.companyName,
+        salaryMin: raw.salaryMin,
+        salaryMax: raw.salaryMax,
+        salaryCurrency: raw.salaryCurrency,
+        couponCode: raw.couponCode,
+        discountText: raw.discountText,
+        venueName: raw.venueName,
+        country: raw.country,
+        region: raw.region,
+        metadata,
+        compliance,
         ...(categoryId && { categoryId }),
       },
     });
@@ -150,8 +212,9 @@ async function upsertListing(
         })),
       });
     }
+    return "updated";
   } else {
-    const slug = await ensureUniqueSlug(slugify(raw.title));
+    const slug = await ensureUniqueSlug(slugifyListingTitle(raw.title));
 
     const listing = await prisma.listing.create({
       data: {
@@ -174,6 +237,24 @@ async function upsertListing(
         startDate: raw.startDate,
         endDate: raw.endDate,
         expiresAt: raw.expiresAt,
+        status: "active",
+        canonicalUrl,
+        fingerprint,
+        sourceUpdatedAt: raw.sourceUpdatedAt,
+        publishedAt: raw.publishedAt,
+        lastSeenAt: raw.lastSeenAt ?? now,
+        qualityScore,
+        companyName: raw.companyName,
+        salaryMin: raw.salaryMin,
+        salaryMax: raw.salaryMax,
+        salaryCurrency: raw.salaryCurrency,
+        couponCode: raw.couponCode,
+        discountText: raw.discountText,
+        venueName: raw.venueName,
+        country: raw.country,
+        region: raw.region,
+        metadata,
+        compliance,
         providerId,
         ...(categoryId && { categoryId }),
         externalId: raw.externalId,
@@ -188,5 +269,23 @@ async function upsertListing(
         })),
       });
     }
+    return "added";
   }
+}
+
+async function expireStaleListings(providerId: string, seenExternalIds: string[]): Promise<number> {
+  const now = new Date();
+  const result = await prisma.listing.updateMany({
+    where: {
+      providerId,
+      status: "active",
+      externalId: { notIn: seenExternalIds },
+      OR: [
+        { expiresAt: { lt: now } },
+        { endDate: { lt: now } },
+      ],
+    },
+    data: { status: "expired" },
+  });
+  return result.count;
 }
