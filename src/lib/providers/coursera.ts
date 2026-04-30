@@ -106,8 +106,6 @@ export class CourseraProvider extends BaseProvider {
           language: course.primaryLanguages?.[0] ?? "en",
           categorySlug: mapDomainToCategory(course.domainTypes),
           tagSlugs: inferTagSlugs(course),
-          sourceUpdatedAt: now,
-          publishedAt: now,
           lastSeenAt: now,
           metadata: {
             partnerName,

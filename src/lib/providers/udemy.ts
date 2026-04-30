@@ -89,6 +89,16 @@ function inferCategorySlug(title: string, headline: string): string {
 }
 
 export class UdemyProvider extends BaseProvider {
+  isConfigured(): boolean {
+    return Boolean(this.config.apiKey || process.env.UDEMY_API_KEY);
+  }
+
+  getMissingConfigReason(): string | null {
+    return this.isConfigured()
+      ? null
+      : "UDEMY_API_KEY is required. Get one at https://www.udemy.com/user/edit-api-clients/";
+  }
+
   async fetchListings(options?: {
     page?: number;
     limit?: number;
@@ -152,8 +162,6 @@ export class UdemyProvider extends BaseProvider {
             duration: course.content_info_short,
             level: mapLevel(course.instructional_level_simple),
             language: course.locale?.simple_english_title ?? "English",
-            sourceUpdatedAt: now,
-            publishedAt: now,
             lastSeenAt: now,
             categorySlug: inferCategorySlug(course.title, course.headline),
             tagSlugs: inferTagSlugs(course),
