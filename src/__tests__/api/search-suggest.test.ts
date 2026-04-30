@@ -62,5 +62,9 @@ describe("GET /api/search/suggest", () => {
     expect(mockedPrisma.$queryRawUnsafe).toHaveBeenCalledTimes(1);
     const call = mockedPrisma.$queryRawUnsafe.mock.calls[0];
     expect(call[1]).toBe("web:* & dev:*");
+    expect(call[2]).toBe("active");
+    expect(call[0]).toContain(`"status" = $2`);
+    expect(call[0]).toContain(`("expiresAt" IS NULL OR "expiresAt" >= NOW())`);
+    expect(call[0]).toContain(`("endDate" IS NULL OR "endDate" >= NOW())`);
   });
 });

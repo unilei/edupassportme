@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { sendMail, newMatchTemplate, priceDropTemplate } from "@/lib/email";
 import { Prisma } from "@/generated/prisma/client";
+import { activeListingWhere } from "@/lib/listing-visibility";
 
 export const maxDuration = 300;
 
@@ -39,16 +40,10 @@ export async function GET(request: NextRequest) {
       try {
         const filters = search.filters as Record<string, string>;
         const since = search.lastAlertAt || search.createdAt;
-        const now = new Date();
-
         // Build a dynamic where clause from the saved search filters
         const where: Prisma.ListingWhereInput = {
-          status: "active",
+          ...activeListingWhere(),
           createdAt: { gt: since },
-          AND: [
-            { OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] },
-            { OR: [{ endDate: null }, { endDate: { gte: now } }] },
-          ],
         };
 
         if (search.query) {
@@ -109,6 +104,7 @@ export async function GET(request: NextRequest) {
     // 2. Price drop alerts — check saved listings for price decreases
     // -----------------------------------------------------------------------
     const savedListings = await prisma.savedListing.findMany({
+      where: { listing: activeListingWhere() },
       include: {
         user: {
           select: {

@@ -6,6 +6,7 @@ import { SearchInput } from "@/components/shared/SearchInput";
 import { ListingCard } from "@/components/listing/ListingCard";
 import { ListingFilters } from "@/components/listing/ListingFilters";
 import { ItemPagination } from "@/components/shared/Pagination";
+import { activeListingWhere } from "@/lib/listing-visibility";
 
 export const metadata: Metadata = {
   title: "Search",
@@ -53,19 +54,12 @@ async function SearchResults({ searchParams }: SearchPageProps) {
     );
   }
 
-  const now = new Date();
-  const activeListingWhere = {
-    status: "active" as const,
-    AND: [
-      { OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] },
-      { OR: [{ endDate: null }, { endDate: { gte: now } }] },
-    ],
-  };
+  const activeListing = activeListingWhere();
   // Build where clause using Prisma contains (FTS raw query is in the API)
   const where: Record<string, unknown> = {
-    ...activeListingWhere,
+    ...activeListing,
     AND: [
-      ...activeListingWhere.AND,
+      ...activeListing.AND,
       {
         OR: [
           { title: { contains: query, mode: "insensitive" } },
@@ -99,7 +93,7 @@ async function SearchResults({ searchParams }: SearchPageProps) {
     }),
     prisma.listing.groupBy({
       by: ["providerId"],
-      where: activeListingWhere,
+      where: activeListing,
       _count: true,
     }).then(async (groups) => {
       const providerIds = groups.map((g) => g.providerId);
@@ -116,14 +110,14 @@ async function SearchResults({ searchParams }: SearchPageProps) {
     }),
     prisma.listing.groupBy({
       by: ["level"],
-      where: { ...activeListingWhere, level: { not: null } },
+      where: { ...activeListing, level: { not: null } },
       _count: true,
     }).then((groups) =>
       groups.filter((g) => g.level).map((g) => ({ value: g.level!, label: g.level!, count: g._count }))
     ),
     prisma.listing.groupBy({
       by: ["type"],
-      where: activeListingWhere,
+      where: activeListing,
       _count: true,
     }).then((groups) =>
       groups.map((g) => ({

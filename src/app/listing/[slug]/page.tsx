@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { ReviewSectionWrapper } from "@/components/listing/ReviewSectionWrapper";
 import { ShareButton } from "@/components/listing/ShareButton";
 import { AiSummaryButton } from "@/components/ai/AiSummaryButton";
+import { activeListingWhere } from "@/lib/listing-visibility";
 
 export const revalidate = 3600;
 
@@ -18,14 +19,9 @@ interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-export async function generateStaticParams() {
-  const listings = await prisma.listing.findMany({ select: { slug: true } });
-  return listings.map((l) => ({ slug: l.slug }));
-}
-
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
-  const listing = await prisma.listing.findUnique({ where: { slug } });
+  const listing = await prisma.listing.findFirst({ where: { slug, ...activeListingWhere() } });
   if (!listing) return {};
   return createMetadata({
     title: listing.title,
@@ -36,9 +32,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ListingDetailPage({ params }: PageProps) {
   const { slug } = await params;
+  const publicListingWhere = activeListingWhere();
 
-  const listing = await prisma.listing.findUnique({
-    where: { slug },
+  const listing = await prisma.listing.findFirst({
+    where: { slug, ...publicListingWhere },
     include: {
       provider: true,
       category: true,
@@ -55,6 +52,7 @@ export default async function ListingDetailPage({ params }: PageProps) {
   // Related listings (same type + category)
   const related = await prisma.listing.findMany({
     where: {
+      ...publicListingWhere,
       type: listing.type,
       categoryId: listing.categoryId,
       id: { not: listing.id },

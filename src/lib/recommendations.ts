@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { activeListingWhere } from "@/lib/listing-visibility";
 
 interface RecommendationOptions {
   userId: string;
@@ -59,17 +60,11 @@ export async function getRecommendations({ userId, limit = 12 }: RecommendationO
 
   // Map interests to search keywords
   const interestKeywords = interests.map((i) => i.toLowerCase());
-  const now = new Date();
-
   // Fetch candidate listings (exclude already saved)
   const candidates = await prisma.listing.findMany({
     where: {
-      status: "active",
+      ...activeListingWhere(),
       id: { notIn: [...savedListingIds] },
-      AND: [
-        { OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] },
-        { OR: [{ endDate: null }, { endDate: { gte: now } }] },
-      ],
     },
     take: 200,
     include: {

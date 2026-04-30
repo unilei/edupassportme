@@ -6,6 +6,7 @@ import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { ListingCard } from "@/components/listing/ListingCard";
 import { ListingFilters } from "@/components/listing/ListingFilters";
 import { ItemPagination } from "@/components/shared/Pagination";
+import { activeListingWhere } from "@/lib/listing-visibility";
 
 export const revalidate = 3600;
 const PER_PAGE = 12;
@@ -41,15 +42,10 @@ async function CoursesContent({ searchParams }: PageProps) {
   const providerSlug = params.provider || "";
   const level = params.level || "";
   const priceMax = params.priceMax || "";
-  const now = new Date();
 
   const activeCourseWhere = {
+    ...activeListingWhere(),
     type: "course" as const,
-    status: "active" as const,
-    AND: [
-      { OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] },
-      { OR: [{ endDate: null }, { endDate: { gte: now } }] },
-    ],
   };
   const where: Record<string, unknown> = { ...activeCourseWhere };
   if (query.trim()) {

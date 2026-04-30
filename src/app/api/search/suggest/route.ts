@@ -20,9 +20,13 @@ export async function GET(request: NextRequest) {
     `SELECT "title", "slug", "type"
      FROM "Listing"
      WHERE "searchVector" @@ to_tsquery('english', $1)
+       AND "status" = $2
+       AND ("expiresAt" IS NULL OR "expiresAt" >= NOW())
+       AND ("endDate" IS NULL OR "endDate" >= NOW())
      ORDER BY ts_rank("searchVector", to_tsquery('english', $1)) DESC
      LIMIT 8`,
     tsquery,
+    "active",
   );
 
   const res = NextResponse.json({

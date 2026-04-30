@@ -8,6 +8,7 @@ import { DealCard } from "@/components/home/DealCard";
 import { ItemGrid } from "@/components/item/ItemGrid";
 import { NewsletterSection } from "@/components/home/NewsletterSection";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { activeListingWhere } from "@/lib/listing-visibility";
 
 export const revalidate = 3600;
 
@@ -18,14 +19,7 @@ const listingInclude = {
 } as const;
 
 async function HomeContent() {
-  const now = new Date();
-  const activeListingWhere = {
-    status: "active" as const,
-    AND: [
-      { OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] },
-      { OR: [{ endDate: null }, { endDate: { gte: now } }] },
-    ],
-  };
+  const activeListing = activeListingWhere();
   const [
     courseCount,
     jobCount,
@@ -38,25 +32,25 @@ async function HomeContent() {
     activeDeals,
     editorialPicks,
   ] = await Promise.all([
-    prisma.listing.count({ where: { ...activeListingWhere, type: "course" } }),
-    prisma.listing.count({ where: { ...activeListingWhere, type: "job" } }),
-    prisma.listing.count({ where: { ...activeListingWhere, type: "event" } }),
+    prisma.listing.count({ where: { ...activeListing, type: "course" } }),
+    prisma.listing.count({ where: { ...activeListing, type: "job" } }),
+    prisma.listing.count({ where: { ...activeListing, type: "event" } }),
     prisma.deal.count({ where: { isActive: true } }),
     prisma.provider.count({ where: { isActive: true } }),
     prisma.listing.findMany({
-      where: { ...activeListingWhere, type: "course" },
+      where: { ...activeListing, type: "course" },
       orderBy: { rating: "desc" },
       take: 4,
       include: listingInclude,
     }),
     prisma.listing.findMany({
-      where: { ...activeListingWhere, type: "job" },
+      where: { ...activeListing, type: "job" },
       orderBy: { createdAt: "desc" },
       take: 3,
       include: listingInclude,
     }),
     prisma.listing.findMany({
-      where: { ...activeListingWhere, type: "event" },
+      where: { ...activeListing, type: "event" },
       orderBy: { startDate: "asc" },
       take: 3,
       include: listingInclude,

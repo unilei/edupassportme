@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireUser, isAuthError } from "@/lib/api-utils";
 import { checkAndAwardBadges } from "@/lib/badges";
 import type { Prisma } from "@/generated/prisma/client";
+import { activeListingWhere } from "@/lib/listing-visibility";
 
 export async function GET(req: NextRequest) {
   const user = await requireUser();
@@ -57,7 +58,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "listingId required" }, { status: 400 });
   }
 
-  const listing = await prisma.listing.findUnique({ where: { id: listingId }, select: { title: true, slug: true } });
+  const listing = await prisma.listing.findFirst({
+    where: { id: listingId, ...activeListingWhere() },
+    select: { title: true, slug: true },
+  });
   if (!listing) {
     return NextResponse.json({ error: "Listing not found" }, { status: 404 });
   }

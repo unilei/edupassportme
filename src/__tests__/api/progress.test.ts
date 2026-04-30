@@ -6,7 +6,7 @@ const mockLearningProgressFindUnique = vi.fn();
 const mockLearningProgressCreate = vi.fn();
 const mockLearningProgressUpdate = vi.fn();
 const mockLearningProgressDeleteMany = vi.fn();
-const mockListingFindUnique = vi.fn();
+const mockListingFindFirst = vi.fn();
 const mockUserActivityCreate = vi.fn();
 
 vi.mock("@/lib/prisma", () => ({
@@ -20,7 +20,7 @@ vi.mock("@/lib/prisma", () => ({
       count: vi.fn().mockResolvedValue(0),
     },
     listing: {
-      findUnique: (...args: unknown[]) => mockListingFindUnique(...args),
+      findFirst: (...args: unknown[]) => mockListingFindFirst(...args),
     },
     userActivity: {
       create: (...args: unknown[]) => mockUserActivityCreate(...args),
@@ -92,7 +92,7 @@ describe("/api/user/progress", () => {
     });
 
     it("should return 404 when listing does not exist", async () => {
-      mockListingFindUnique.mockResolvedValue(null);
+      mockListingFindFirst.mockResolvedValue(null);
 
       const res = await POST(new NextRequest("http://localhost:3000/api/user/progress", {
         method: "POST",
@@ -106,7 +106,7 @@ describe("/api/user/progress", () => {
     });
 
     it("should create new progress entry for first enrollment", async () => {
-      mockListingFindUnique.mockResolvedValue({ title: "React Course", slug: "react-course" });
+      mockListingFindFirst.mockResolvedValue({ title: "React Course", slug: "react-course" });
       mockLearningProgressFindUnique.mockResolvedValue(null);
       mockLearningProgressCreate.mockResolvedValue({
         id: "lp1", userId: "user1", listingId: "l1", status: "enrolled", progress: 0,
@@ -122,12 +122,16 @@ describe("/api/user/progress", () => {
 
       expect(res.status).toBe(200);
       expect(data.status).toBe("enrolled");
+      expect(mockListingFindFirst).toHaveBeenCalledWith({
+        where: expect.objectContaining({ id: "l1", status: "active" }),
+        select: { title: true, slug: true },
+      });
       expect(mockLearningProgressCreate).toHaveBeenCalled();
       expect(mockUserActivityCreate).toHaveBeenCalled();
     });
 
     it("should update existing progress", async () => {
-      mockListingFindUnique.mockResolvedValue({ title: "React Course", slug: "react-course" });
+      mockListingFindFirst.mockResolvedValue({ title: "React Course", slug: "react-course" });
       mockLearningProgressFindUnique.mockResolvedValue({
         id: "lp1", status: "in_progress", progress: 50,
       });

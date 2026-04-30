@@ -5,6 +5,7 @@ import { createMetadata } from "@/lib/metadata";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { ListingCard } from "@/components/listing/ListingCard";
 import { ItemPagination } from "@/components/shared/Pagination";
+import { activeListingWhere } from "@/lib/listing-visibility";
 
 export const revalidate = 3600;
 const PER_PAGE = 12;
@@ -29,15 +30,10 @@ async function JobsContent({ searchParams }: PageProps) {
   const params = await searchParams;
   const query = params.q || "";
   const currentPage = Math.max(1, parseInt(params.page || "1", 10));
-  const now = new Date();
 
   const where: Record<string, unknown> = {
+    ...activeListingWhere(),
     type: "job" as const,
-    status: "active",
-    AND: [
-      { OR: [{ expiresAt: null }, { expiresAt: { gte: now } }] },
-      { OR: [{ endDate: null }, { endDate: { gte: now } }] },
-    ],
   };
   if (query.trim()) {
     where.AND = [

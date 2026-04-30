@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { activeListingWhere } from "@/lib/listing-visibility";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -14,6 +15,7 @@ export async function GET(request: NextRequest) {
       ...(position ? { position } : {}),
       startDate: { lte: now },
       OR: [{ endDate: null }, { endDate: { gte: now } }],
+      listing: activeListingWhere(now),
     },
     orderBy: { createdAt: "desc" },
     take: limit,

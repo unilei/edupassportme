@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { activeListingWhere } from "@/lib/listing-visibility";
 
 async function getUserId(): Promise<string | null> {
   const session = await getServerSession(authOptions);
@@ -15,7 +16,7 @@ export async function GET() {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const saved = await prisma.savedListing.findMany({
-    where: { userId },
+    where: { userId, listing: activeListingWhere() },
     orderBy: { createdAt: "desc" },
     include: {
       listing: {
@@ -51,6 +52,14 @@ export async function POST(request: NextRequest) {
   if (existing) {
     await prisma.savedListing.delete({ where: { id: existing.id } });
     return NextResponse.json({ saved: false });
+  }
+
+  const listing = await prisma.listing.findFirst({
+    where: { id: listingId, ...activeListingWhere() },
+    select: { id: true },
+  });
+  if (!listing) {
+    return NextResponse.json({ error: "Listing not found" }, { status: 404 });
   }
 
   await prisma.savedListing.create({ data: { userId, listingId } });

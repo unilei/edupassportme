@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { activeListingWhere } from "@/lib/listing-visibility";
 
 interface RouteContext {
   params: Promise<{ slug: string }>;
@@ -14,8 +15,8 @@ export async function GET(request: NextRequest, context: RouteContext) {
   const page = parseInt(searchParams.get("page") || "1", 10);
   const limit = 10;
 
-  const listing = await prisma.listing.findUnique({
-    where: { slug },
+  const listing = await prisma.listing.findFirst({
+    where: { slug, ...activeListingWhere() },
     select: { id: true },
   });
 
@@ -91,8 +92,8 @@ export async function POST(request: NextRequest, context: RouteContext) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const listing = await prisma.listing.findUnique({
-    where: { slug },
+  const listing = await prisma.listing.findFirst({
+    where: { slug, ...activeListingWhere() },
     select: { id: true },
   });
 

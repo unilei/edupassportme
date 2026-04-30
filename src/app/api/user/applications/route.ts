@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isProUser } from "@/lib/pro";
+import { activeListingWhere } from "@/lib/listing-visibility";
 
 // GET: List user's applications
 export async function GET() {
@@ -55,11 +56,11 @@ export async function POST(request: NextRequest) {
   }
 
   // Verify the listing is a job
-  const listing = await prisma.listing.findUnique({
-    where: { id: listingId },
+  const listing = await prisma.listing.findFirst({
+    where: { id: listingId, type: "job", ...activeListingWhere() },
     select: { type: true },
   });
-  if (!listing || listing.type !== "job") {
+  if (!listing) {
     return NextResponse.json({ error: "Can only apply to job listings" }, { status: 400 });
   }
 

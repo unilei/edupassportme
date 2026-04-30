@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getOpenAI, AI_MODEL } from "@/lib/ai";
+import { activeListingWhere } from "@/lib/listing-visibility";
 
 export async function POST(req: NextRequest) {
   const body = await req.json();
@@ -10,8 +11,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Missing slug" }, { status: 400 });
   }
 
-  const listing = await prisma.listing.findUnique({
-    where: { slug },
+  const listing = await prisma.listing.findFirst({
+    where: { slug, ...activeListingWhere() },
     select: {
       title: true,
       type: true,

@@ -4,6 +4,7 @@ import { createMetadata } from "@/lib/metadata";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { DealCard } from "@/components/home/DealCard";
 import { ListingCard } from "@/components/listing/ListingCard";
+import { activeListingWhere } from "@/lib/listing-visibility";
 
 export const revalidate = 3600;
 
@@ -17,12 +18,8 @@ export default async function DealsPage() {
   const [dealListings, legacyDeals] = await Promise.all([
     prisma.listing.findMany({
       where: {
+        ...activeListingWhere(),
         type: "deal",
-        status: "active",
-        OR: [
-          { expiresAt: null },
-          { expiresAt: { gte: new Date() } },
-        ],
       },
       orderBy: [{ expiresAt: "asc" }, { createdAt: "desc" }],
       include: {

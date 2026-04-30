@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { activeListingWhere } from "@/lib/listing-visibility";
 
 export async function POST(request: NextRequest) {
   try {
@@ -25,10 +26,15 @@ export async function POST(request: NextRequest) {
     let affiliateTag: string | null = null;
     let commission: number | null = null;
 
-    const targetProviderId = providerId || (await prisma.listing.findUnique({
-      where: { id: listingId },
+    const listing = await prisma.listing.findFirst({
+      where: { id: listingId, ...activeListingWhere() },
       select: { providerId: true },
-    }))?.providerId;
+    });
+    if (!listing) {
+      return NextResponse.json({ error: "Listing not found" }, { status: 404 });
+    }
+
+    const targetProviderId = providerId || listing.providerId;
 
     if (targetProviderId) {
       const provider = await prisma.provider.findUnique({
