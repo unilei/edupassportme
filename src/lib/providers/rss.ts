@@ -1,6 +1,7 @@
 import { BaseProvider } from "./base";
 import type { RawListing } from "./types";
 import type { ListingType } from "@/generated/prisma/enums";
+import { canonicalizeUrl, normalizeText, parseOptionalDate } from "./normalization";
 
 interface RssProviderOptions {
   feedUrl: string;
@@ -17,20 +18,6 @@ interface RssItem {
   guid?: string;
   category?: string[];
   "media:content"?: { $: { url: string } };
-}
-
-function extractTextContent(html: string): string {
-  return html
-    .replace(/<[^>]*>/g, "")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/&nbsp;/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 500);
 }
 
 function parseRssXml(xml: string): RssItem[] {
@@ -84,16 +71,25 @@ export class RssProvider extends BaseProvider {
 
     const xml = await res.text();
     const items = parseRssXml(xml);
+    const now = new Date();
 
-    return items.map((item) => ({
-      externalId: item.guid || item.link,
-      title: extractTextContent(item.title),
-      type: this.options.listingType,
-      description: extractTextContent(item.description),
-      url: item.link,
-      startDate: item.pubDate ? new Date(item.pubDate) : undefined,
-      categorySlug: this.options.categorySlug,
-      tagSlugs: this.options.tagSlugs,
-    }));
+    return items.map((item) => {
+      const publishedAt = parseOptionalDate(item.pubDate);
+      return {
+        externalId: item.guid || item.link,
+        title: normalizeText(item.title, 160),
+        type: this.options.listingType,
+        description: normalizeText(item.description),
+        url: item.link,
+        canonicalUrl: canonicalizeUrl(item.link),
+        publishedAt,
+        sourceUpdatedAt: publishedAt,
+        lastSeenAt: now,
+        startDate: this.options.listingType === "event" ? publishedAt : undefined,
+        categorySlug: this.options.categorySlug,
+        tagSlugs: this.options.tagSlugs,
+        metadata: { source: "rss", feedUrl: this.options.feedUrl },
+      };
+    });
   }
 }

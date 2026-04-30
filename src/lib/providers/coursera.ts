@@ -88,13 +88,16 @@ export class CourseraProvider extends BaseProvider {
       for (const course of data.elements) {
         const partnerName = partners.find((p) => course.partnerIds?.includes(p.id))?.name;
         const desc = course.description?.slice(0, 500) || course.name;
+        const now = new Date();
+        const url = `https://www.coursera.org/learn/${course.slug}`;
 
         allListings.push({
           externalId: `coursera-${course.id}`,
           title: course.name,
           type: "course",
           description: partnerName ? `${desc} — by ${partnerName}` : desc,
-          url: `https://www.coursera.org/learn/${course.slug}`,
+          url,
+          canonicalUrl: url,
           image: course.photoUrl,
           price: 0,
           priceLabel: "Free to audit",
@@ -103,6 +106,13 @@ export class CourseraProvider extends BaseProvider {
           language: course.primaryLanguages?.[0] ?? "en",
           categorySlug: mapDomainToCategory(course.domainTypes),
           tagSlugs: inferTagSlugs(course),
+          sourceUpdatedAt: now,
+          publishedAt: now,
+          lastSeenAt: now,
+          metadata: {
+            partnerName,
+            provider: "coursera",
+          },
         });
       }
     } catch (err) {

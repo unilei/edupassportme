@@ -32,6 +32,8 @@ export async function syncProvider(
     itemsFound: 0,
     itemsAdded: 0,
     itemsUpdated: 0,
+    itemsSkipped: 0,
+    itemsExpired: 0,
     errors: [],
   };
 

@@ -132,6 +132,8 @@ export class UdemyProvider extends BaseProvider {
 
           const priceAmount = course.price_detail?.amount ?? (course.price === "Free" ? 0 : undefined);
           const currency = course.price_detail?.currency ?? "USD";
+          const now = new Date();
+          const url = `https://www.udemy.com${course.url}`;
 
           allListings.push({
             externalId: `udemy-${course.id}`,
@@ -139,7 +141,8 @@ export class UdemyProvider extends BaseProvider {
             type: "course",
             description: course.headline || course.title,
             content: course.description,
-            url: `https://www.udemy.com${course.url}`,
+            url,
+            canonicalUrl: url,
             image: course.image_480x270,
             price: priceAmount,
             currency,
@@ -149,8 +152,15 @@ export class UdemyProvider extends BaseProvider {
             duration: course.content_info_short,
             level: mapLevel(course.instructional_level_simple),
             language: course.locale?.simple_english_title ?? "English",
+            sourceUpdatedAt: now,
+            publishedAt: now,
+            lastSeenAt: now,
             categorySlug: inferCategorySlug(course.title, course.headline),
             tagSlugs: inferTagSlugs(course),
+            metadata: {
+              subscribers: course.num_subscribers,
+              provider: "udemy",
+            },
           });
         }
       } catch (err) {

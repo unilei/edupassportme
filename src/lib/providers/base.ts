@@ -21,6 +21,14 @@ export abstract class BaseProvider {
     return this.config.name;
   }
 
+  isConfigured(): boolean {
+    return true;
+  }
+
+  getMissingConfigReason(): string | null {
+    return this.isConfigured() ? null : "Provider credentials are missing";
+  }
+
   protected async fetchWithRetry(
     url: string,
     options?: RequestInit,
@@ -31,7 +39,8 @@ export abstract class BaseProvider {
         const res = await fetch(url, {
           ...options,
           headers: {
-            "User-Agent": "EDU Passport/1.0",
+            Accept: "application/json, text/plain, */*",
+            "User-Agent": this.config.userAgent || "EDU Passport/1.0",
             ...options?.headers,
           },
         });

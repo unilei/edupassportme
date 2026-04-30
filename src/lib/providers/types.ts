@@ -1,4 +1,5 @@
 import type { ListingType } from "@/generated/prisma/enums";
+import type { ProviderCompliance } from "./compliance";
 
 export interface RawListing {
   externalId: string;
@@ -7,6 +8,7 @@ export interface RawListing {
   description: string;
   content?: string;
   url: string;
+  canonicalUrl?: string;
   image?: string;
   price?: number;
   currency?: string;
@@ -20,14 +22,30 @@ export interface RawListing {
   startDate?: Date;
   endDate?: Date;
   expiresAt?: Date;
+  sourceUpdatedAt?: Date;
+  publishedAt?: Date;
+  lastSeenAt?: Date;
+  companyName?: string;
+  salaryMin?: number;
+  salaryMax?: number;
+  salaryCurrency?: string;
+  couponCode?: string;
+  discountText?: string;
+  venueName?: string;
+  country?: string;
+  region?: string;
   categorySlug?: string;
   tagSlugs?: string[];
+  metadata?: Record<string, unknown>;
+  compliance?: ProviderCompliance;
 }
 
 export interface SyncResult {
   itemsFound: number;
   itemsAdded: number;
   itemsUpdated: number;
+  itemsSkipped: number;
+  itemsExpired: number;
   errors: string[];
 }
 
@@ -36,5 +54,9 @@ export interface ProviderConfig {
   name: string;
   apiBaseUrl?: string;
   apiKey?: string;
-  rateLimit?: number; // requests per minute
+  apiSecret?: string;
+  appId?: string;
+  userAgent?: string;
+  publisherId?: string;
+  rateLimit?: number;
 }
