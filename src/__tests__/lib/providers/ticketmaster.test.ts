@@ -5,7 +5,7 @@ describe("TicketmasterProvider", () => {
   afterEach(() => vi.restoreAllMocks());
 
   it("maps events into RawListing", async () => {
-    vi.spyOn(globalThis, "fetch").mockResolvedValue({
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue({
       ok: true,
       json: async () => ({
         _embedded: {
@@ -32,6 +32,7 @@ describe("TicketmasterProvider", () => {
 
     const provider = new TicketmasterProvider({ slug: "ticketmaster", name: "Ticketmaster", apiKey: "key" });
     const listings = await provider.fetchListings();
+    const fetchUrl = new URL(String(fetchMock.mock.calls[0][0]));
 
     expect(listings[0]).toMatchObject({
       externalId: "ticketmaster-tm1",
@@ -42,5 +43,6 @@ describe("TicketmasterProvider", () => {
       region: "CA",
       priceLabel: "$20-$100",
     });
+    expect(fetchUrl.searchParams.get("sort")).toBe("eventDate,date.asc");
   });
 });

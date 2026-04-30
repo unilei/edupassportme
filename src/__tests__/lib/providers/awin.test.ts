@@ -18,7 +18,7 @@ describe("AwinOffersProvider", () => {
           startDate: "2026-04-01",
           endDate: "2026-05-01",
           url: "https://merchant.example.com/deal",
-          regions: ["US"],
+          regions: { all: false, list: [{ countryCode: "US" }] },
         }],
       }),
     } as Response);
@@ -37,6 +37,7 @@ describe("AwinOffersProvider", () => {
       title: "20% off coding courses",
       couponCode: "LEARN20",
       companyName: "Learning Merchant",
+      country: "US",
       categorySlug: "online-courses",
     });
   });
