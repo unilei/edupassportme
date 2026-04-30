@@ -30,12 +30,21 @@ async function EventsContent({ searchParams }: PageProps) {
   const query = params.q || "";
   const currentPage = Math.max(1, parseInt(params.page || "1", 10));
 
-  const where: Record<string, unknown> = { type: "event" as const };
+  const where: Record<string, unknown> = {
+    type: "event" as const,
+    status: "active",
+    OR: [
+      { endDate: null },
+      { endDate: { gte: new Date() } },
+    ],
+  };
   if (query.trim()) {
-    where.OR = [
-      { title: { contains: query, mode: "insensitive" } },
-      { description: { contains: query, mode: "insensitive" } },
-    ];
+    where.AND = [{
+      OR: [
+        { title: { contains: query, mode: "insensitive" } },
+        { description: { contains: query, mode: "insensitive" } },
+      ],
+    }];
   }
 
   const [total, listings] = await Promise.all([

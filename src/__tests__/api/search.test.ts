@@ -81,6 +81,21 @@ describe("GET /api/search", () => {
     expect(body.listings[0].title).toBe("Intro to Python");
     expect(body.listings[0].provider.name).toBe("Udemy");
     expect(body.listings[0].rank).toBe(0.8);
+
+    expect(mockedPrisma.$queryRawUnsafe).toHaveBeenNthCalledWith(
+      1,
+      expect.stringContaining(`"status" = $2`),
+      "python:*",
+      "active"
+    );
+    expect(mockedPrisma.$queryRawUnsafe).toHaveBeenNthCalledWith(
+      2,
+      expect.stringContaining(`l."status" = $2`),
+      "python:*",
+      "active",
+      12,
+      0
+    );
   });
 
   it("should respect page parameter", async () => {

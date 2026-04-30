@@ -28,6 +28,10 @@ export async function GET(request: NextRequest) {
   const params: (string | number)[] = [tsquery];
   let paramIdx = 2;
 
+  conditions.push(`"status" = $${paramIdx}`);
+  params.push("active");
+  paramIdx++;
+
   if (type) {
     conditions.push(`"type" = $${paramIdx}`);
     params.push(type);
@@ -90,7 +94,7 @@ export async function GET(request: NextRequest) {
               ts_rank(l."searchVector", to_tsquery('english', $1)) as rank
        FROM "Listing" l
        JOIN "Provider" p ON p."id" = l."providerId"
-       WHERE ${whereClause.replace(/"searchVector"/g, 'l."searchVector"').replace(/"type"/g, 'l."type"').replace(/"level"/g, 'l."level"').replace(/"price"/g, 'l."price"').replace(/"providerId"/g, 'l."providerId"')}
+       WHERE ${whereClause.replace(/"searchVector"/g, 'l."searchVector"').replace(/"status"/g, 'l."status"').replace(/"type"/g, 'l."type"').replace(/"level"/g, 'l."level"').replace(/"price"/g, 'l."price"').replace(/"providerId"/g, 'l."providerId"')}
        ORDER BY ${orderClause.replace(/"searchVector"/g, 'l."searchVector"').replace(/"createdAt"/g, 'l."createdAt"').replace(/"price"/g, 'l."price"').replace(/"rating"/g, 'l."rating"')}
        LIMIT $${limitParamIdx} OFFSET $${offsetParamIdx}`,
       ...params

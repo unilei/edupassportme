@@ -30,7 +30,7 @@ async function JobsContent({ searchParams }: PageProps) {
   const query = params.q || "";
   const currentPage = Math.max(1, parseInt(params.page || "1", 10));
 
-  const where: Record<string, unknown> = { type: "job" as const };
+  const where: Record<string, unknown> = { type: "job" as const, status: "active" };
   if (query.trim()) {
     where.OR = [
       { title: { contains: query, mode: "insensitive" } },

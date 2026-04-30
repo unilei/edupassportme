@@ -55,6 +55,7 @@ async function SearchResults({ searchParams }: SearchPageProps) {
 
   // Build where clause using Prisma contains (FTS raw query is in the API)
   const where: Record<string, unknown> = {
+    status: "active",
     OR: [
       { title: { contains: query, mode: "insensitive" } },
       { description: { contains: query, mode: "insensitive" } },
@@ -85,6 +86,7 @@ async function SearchResults({ searchParams }: SearchPageProps) {
     }),
     prisma.listing.groupBy({
       by: ["providerId"],
+      where: { status: "active" },
       _count: true,
     }).then(async (groups) => {
       const providerIds = groups.map((g) => g.providerId);
@@ -101,13 +103,14 @@ async function SearchResults({ searchParams }: SearchPageProps) {
     }),
     prisma.listing.groupBy({
       by: ["level"],
-      where: { level: { not: null } },
+      where: { status: "active", level: { not: null } },
       _count: true,
     }).then((groups) =>
       groups.filter((g) => g.level).map((g) => ({ value: g.level!, label: g.level!, count: g._count }))
     ),
     prisma.listing.groupBy({
       by: ["type"],
+      where: { status: "active" },
       _count: true,
     }).then((groups) =>
       groups.map((g) => ({
