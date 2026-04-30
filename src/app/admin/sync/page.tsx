@@ -10,8 +10,14 @@ interface ProviderStatus {
   slug: string;
   isActive: boolean;
   apiType: string;
+  authType: string;
+  rateLimitPerMinute: number | null;
   syncFrequency: string;
   lastSyncAt: string | null;
+  lastSuccessfulSyncAt: string | null;
+  lastFailedSyncAt: string | null;
+  failureCount: number;
+  complianceNotes: string | null;
   _count: { listings: number; syncLogs: number };
 }
 
@@ -21,6 +27,10 @@ interface SyncLogEntry {
   itemsFound: number;
   itemsAdded: number;
   itemsUpdated: number;
+  itemsSkipped: number;
+  itemsExpired: number;
+  durationMs: number | null;
+  details: unknown;
   error: string | null;
   startedAt: string;
   completedAt: string | null;
@@ -31,7 +41,14 @@ interface SyncResult {
   providerId: string;
   providerName: string;
   providerSlug: string;
-  result: { itemsFound: number; itemsAdded: number; itemsUpdated: number; errors: string[] } | null;
+  result: {
+    itemsFound: number;
+    itemsAdded: number;
+    itemsUpdated: number;
+    itemsSkipped: number;
+    itemsExpired: number;
+    errors: string[];
+  } | null;
   skipped: boolean;
   error?: string;
 }
@@ -120,6 +137,7 @@ export default function SyncDashboardPage() {
                 {r.result && (
                   <span className="text-muted-foreground">
                     Found {r.result.itemsFound}, Added {r.result.itemsAdded}, Updated {r.result.itemsUpdated}
+                    , Skipped {r.result.itemsSkipped}, Expired {r.result.itemsExpired}
                     {r.result.errors.length > 0 && ` (${r.result.errors.length} errors)`}
                   </span>
                 )}
@@ -155,8 +173,20 @@ export default function SyncDashboardPage() {
                 <span className="font-medium text-foreground">{p.apiType}</span>
               </div>
               <div className="flex justify-between">
+                <span>Auth</span>
+                <span className="font-medium text-foreground">{p.authType}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Rate limit</span>
+                <span className="font-medium text-foreground">{p.rateLimitPerMinute ? `${p.rateLimitPerMinute}/min` : "Default"}</span>
+              </div>
+              <div className="flex justify-between">
                 <span>Frequency</span>
                 <span className="font-medium text-foreground">{p.syncFrequency}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Failures</span>
+                <span className="font-medium text-foreground">{p.failureCount}</span>
               </div>
               <div className="flex justify-between">
                 <span>Listings</span>
@@ -199,52 +229,48 @@ export default function SyncDashboardPage() {
         {logs.length === 0 ? (
           <p className="text-sm text-muted-foreground">No sync logs yet. Trigger a sync above.</p>
         ) : (
-          <div className="rounded-xl border overflow-hidden">
-            <table className="w-full text-sm">
+          <div className="rounded-xl border overflow-x-auto">
+            <table className="w-full min-w-[760px] text-sm">
               <thead className="bg-muted/50">
                 <tr>
                   <th className="text-left px-4 py-2 font-medium">Provider</th>
                   <th className="text-left px-4 py-2 font-medium">Status</th>
                   <th className="text-left px-4 py-2 font-medium">Found</th>
                   <th className="text-left px-4 py-2 font-medium">Added</th>
+                  <th className="text-left px-4 py-2 font-medium">Skipped</th>
+                  <th className="text-left px-4 py-2 font-medium">Expired</th>
                   <th className="text-left px-4 py-2 font-medium">Started</th>
                   <th className="text-left px-4 py-2 font-medium">Duration</th>
                 </tr>
               </thead>
               <tbody>
-                {logs.map((log, i) => {
-                  const duration = log.completedAt && log.startedAt
-                    ? Math.round((new Date(log.completedAt).getTime() - new Date(log.startedAt).getTime()) / 1000)
-                    : null;
-
-                  return (
-                    <tr key={log.id} className={i % 2 === 0 ? "" : "bg-muted/20"}>
-                      <td className="px-4 py-2 font-medium">{log.provider.name}</td>
-                      <td className="px-4 py-2">
-                        <span className={`inline-flex items-center gap-1 ${
-                          log.status === "success"
-                            ? "text-green-600"
-                            : log.status === "error"
-                              ? "text-red-600"
-                              : "text-yellow-600"
-                        }`}>
-                          {log.status === "success" ? <CheckCircle className="h-3 w-3" /> :
-                           log.status === "error" ? <XCircle className="h-3 w-3" /> :
-                           <Clock className="h-3 w-3" />}
-                          {log.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-2">{log.itemsFound}</td>
-                      <td className="px-4 py-2">{log.itemsAdded}</td>
-                      <td className="px-4 py-2 text-muted-foreground">
-                        {new Date(log.startedAt).toLocaleString()}
-                      </td>
-                      <td className="px-4 py-2 text-muted-foreground">
-                        {duration !== null ? `${duration}s` : "—"}
-                      </td>
-                    </tr>
-                  );
-                })}
+                {logs.map((log, i) => (
+                  <tr key={log.id} className={i % 2 === 0 ? "" : "bg-muted/20"}>
+                    <td className="px-4 py-2 font-medium">{log.provider.name}</td>
+                    <td className="px-4 py-2">
+                      <span className={`inline-flex items-center gap-1 ${
+                        log.status === "success"
+                          ? "text-green-600"
+                          : log.status === "error"
+                            ? "text-red-600"
+                            : "text-yellow-600"
+                      }`}>
+                        {log.status === "success" ? <CheckCircle className="h-3 w-3" /> :
+                         log.status === "error" ? <XCircle className="h-3 w-3" /> :
+                         <Clock className="h-3 w-3" />}
+                        {log.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2">{log.itemsFound}</td>
+                    <td className="px-4 py-2">{log.itemsAdded}</td>
+                    <td className="px-4 py-2">{log.itemsSkipped}</td>
+                    <td className="px-4 py-2">{log.itemsExpired}</td>
+                    <td className="px-4 py-2 text-muted-foreground">
+                      {new Date(log.startedAt).toLocaleString()}
+                    </td>
+                    <td className="px-4 py-2">{log.durationMs ? `${Math.round(log.durationMs / 100) / 10}s` : "-"}</td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>

@@ -23,6 +23,9 @@ export async function GET(request: NextRequest) {
       failed: results.filter((r) => !r.skipped && r.error).length,
       totalItemsFound: results.reduce((sum, r) => sum + (r.result?.itemsFound ?? 0), 0),
       totalItemsAdded: results.reduce((sum, r) => sum + (r.result?.itemsAdded ?? 0), 0),
+      totalItemsUpdated: results.reduce((sum, r) => sum + (r.result?.itemsUpdated ?? 0), 0),
+      totalItemsSkipped: results.reduce((sum, r) => sum + (r.result?.itemsSkipped ?? 0), 0),
+      totalItemsExpired: results.reduce((sum, r) => sum + (r.result?.itemsExpired ?? 0), 0),
       results,
     };
 
