@@ -629,8 +629,6 @@ allListings.push({
   duration: course.content_info_short,
   level: mapLevel(course.instructional_level_simple),
   language: course.locale?.simple_english_title ?? "English",
-  sourceUpdatedAt: now,
-  publishedAt: now,
   lastSeenAt: now,
   categorySlug: inferCategorySlug(course.title, course.headline),
   tagSlugs: inferTagSlugs(course),
@@ -640,6 +638,8 @@ allListings.push({
   },
 });
 ```
+
+Do not set `publishedAt` or `sourceUpdatedAt` for Udemy unless the provider response includes a real source-side timestamp. Use `lastSeenAt` for sync time.
 
 - [ ] **Step 4: Map new fields in `CourseraProvider`**
 
@@ -662,8 +662,6 @@ allListings.push({
   duration: course.workload,
   level: mapDifficulty(course.difficultyLevel),
   language: course.primaryLanguages?.[0] ?? "en",
-  sourceUpdatedAt: now,
-  publishedAt: now,
   lastSeenAt: now,
   categorySlug: mapDomainToCategory(course.domainTypes),
   tagSlugs: inferTagSlugs(course),
@@ -673,6 +671,8 @@ allListings.push({
   },
 });
 ```
+
+Do not set `publishedAt` or `sourceUpdatedAt` for Coursera unless the provider response includes a real source-side timestamp. Use `lastSeenAt` for sync time.
 
 - [ ] **Step 5: Map new fields in `RssProvider`**
 
