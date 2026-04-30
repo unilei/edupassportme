@@ -9,6 +9,8 @@ import {
   slugifyListingTitle,
 } from "./normalization";
 
+type ListingWriteTransaction = Pick<typeof prisma, "listing" | "listingTag">;
+
 async function ensureUniqueSlug(baseSlug: string): Promise<string> {
   let slug = baseSlug;
   let counter = 0;
@@ -56,7 +58,9 @@ export async function syncProvider(
       }
     }
 
-    result.itemsExpired = await expireStaleListings(providerId, seenExternalIds);
+    if (rawListings.length > 0) {
+      result.itemsExpired = await expireStaleListings(providerId, seenExternalIds);
+    }
 
     await prisma.syncLog.update({
       where: { id: log.id },
@@ -130,7 +134,7 @@ async function upsertListing(
   const metadata = (raw.metadata ?? {}) as Prisma.InputJsonValue;
   const compliance = raw.compliance
     ? ({ ...raw.compliance } as Prisma.InputJsonValue)
-    : undefined;
+    : (null as unknown as Prisma.InputJsonValue);
 
   const existing = await prisma.listing.findUnique({
     where: {
@@ -158,118 +162,93 @@ async function upsertListing(
       ).then((ids) => ids.filter((id): id is string => !!id))
     : [];
 
-  if (existing) {
-    await prisma.listing.update({
-      where: { id: existing.id },
-      data: {
-        title: raw.title,
-        description: raw.description,
-        content: raw.content,
-        url: raw.url,
-        image: raw.image,
-        price: raw.price,
-        currency: raw.currency ?? "USD",
-        priceLabel: raw.priceLabel,
-        rating: raw.rating,
-        reviewCount: raw.reviewCount,
-        duration: raw.duration,
-        level: raw.level,
-        language: raw.language ?? "en",
-        location: raw.location,
-        startDate: raw.startDate,
-        endDate: raw.endDate,
-        expiresAt: raw.expiresAt,
-        status: "active",
-        canonicalUrl,
-        fingerprint,
-        sourceUpdatedAt: raw.sourceUpdatedAt,
-        publishedAt: raw.publishedAt,
-        lastSeenAt: raw.lastSeenAt ?? now,
-        qualityScore,
-        companyName: raw.companyName,
-        salaryMin: raw.salaryMin,
-        salaryMax: raw.salaryMax,
-        salaryCurrency: raw.salaryCurrency,
-        couponCode: raw.couponCode,
-        discountText: raw.discountText,
-        venueName: raw.venueName,
-        country: raw.country,
-        region: raw.region,
-        metadata,
-        compliance,
-        ...(categoryId && { categoryId }),
-      },
-    });
+  const listingData = {
+    title: raw.title,
+    description: raw.description,
+    content: raw.content ?? null,
+    url: raw.url,
+    image: raw.image ?? null,
+    price: raw.price ?? null,
+    currency: raw.currency ?? "USD",
+    priceLabel: raw.priceLabel ?? null,
+    rating: raw.rating ?? null,
+    reviewCount: raw.reviewCount ?? null,
+    duration: raw.duration ?? null,
+    level: raw.level ?? null,
+    language: raw.language ?? "en",
+    location: raw.location ?? null,
+    startDate: raw.startDate ?? null,
+    endDate: raw.endDate ?? null,
+    expiresAt: raw.expiresAt ?? null,
+    status: "active",
+    canonicalUrl,
+    fingerprint,
+    sourceUpdatedAt: raw.sourceUpdatedAt ?? null,
+    publishedAt: raw.publishedAt ?? null,
+    lastSeenAt: raw.lastSeenAt ?? now,
+    qualityScore,
+    companyName: raw.companyName ?? null,
+    salaryMin: raw.salaryMin ?? null,
+    salaryMax: raw.salaryMax ?? null,
+    salaryCurrency: raw.salaryCurrency ?? null,
+    couponCode: raw.couponCode ?? null,
+    discountText: raw.discountText ?? null,
+    venueName: raw.venueName ?? null,
+    country: raw.country ?? null,
+    region: raw.region ?? null,
+    metadata,
+    compliance,
+    categoryId,
+  };
 
-    if (tagIds.length > 0) {
-      await prisma.listingTag.deleteMany({
-        where: { listingId: existing.id },
+  if (existing) {
+    return prisma.$transaction(async (tx: ListingWriteTransaction) => {
+      await tx.listing.update({
+        where: { id: existing.id },
+        data: listingData,
       });
-      await prisma.listingTag.createMany({
-        data: tagIds.map((tagId) => ({
-          listingId: existing.id,
-          tagId,
-        })),
-      });
-    }
-    return "updated";
+
+      if (raw.tagSlugs) {
+        await tx.listingTag.deleteMany({
+          where: { listingId: existing.id },
+        });
+        if (tagIds.length > 0) {
+          await tx.listingTag.createMany({
+            data: tagIds.map((tagId) => ({
+              listingId: existing.id,
+              tagId,
+            })),
+          });
+        }
+      }
+
+      return "updated" as const;
+    });
   } else {
     const slug = await ensureUniqueSlug(slugifyListingTitle(raw.title));
 
-    const listing = await prisma.listing.create({
-      data: {
-        title: raw.title,
-        slug,
-        type: raw.type,
-        description: raw.description,
-        content: raw.content,
-        url: raw.url,
-        image: raw.image,
-        price: raw.price,
-        currency: raw.currency ?? "USD",
-        priceLabel: raw.priceLabel,
-        rating: raw.rating,
-        reviewCount: raw.reviewCount,
-        duration: raw.duration,
-        level: raw.level,
-        language: raw.language ?? "en",
-        location: raw.location,
-        startDate: raw.startDate,
-        endDate: raw.endDate,
-        expiresAt: raw.expiresAt,
-        status: "active",
-        canonicalUrl,
-        fingerprint,
-        sourceUpdatedAt: raw.sourceUpdatedAt,
-        publishedAt: raw.publishedAt,
-        lastSeenAt: raw.lastSeenAt ?? now,
-        qualityScore,
-        companyName: raw.companyName,
-        salaryMin: raw.salaryMin,
-        salaryMax: raw.salaryMax,
-        salaryCurrency: raw.salaryCurrency,
-        couponCode: raw.couponCode,
-        discountText: raw.discountText,
-        venueName: raw.venueName,
-        country: raw.country,
-        region: raw.region,
-        metadata,
-        compliance,
-        providerId,
-        ...(categoryId && { categoryId }),
-        externalId: raw.externalId,
-      },
-    });
-
-    if (tagIds.length > 0) {
-      await prisma.listingTag.createMany({
-        data: tagIds.map((tagId) => ({
-          listingId: listing.id,
-          tagId,
-        })),
+    return prisma.$transaction(async (tx: ListingWriteTransaction) => {
+      const listing = await tx.listing.create({
+        data: {
+          ...listingData,
+          slug,
+          type: raw.type,
+          providerId,
+          externalId: raw.externalId,
+        },
       });
-    }
-    return "added";
+
+      if (tagIds.length > 0) {
+        await tx.listingTag.createMany({
+          data: tagIds.map((tagId) => ({
+            listingId: listing.id,
+            tagId,
+          })),
+        });
+      }
+
+      return "added" as const;
+    });
   }
 }
 

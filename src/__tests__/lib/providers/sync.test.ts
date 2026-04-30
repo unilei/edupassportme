@@ -13,9 +13,30 @@ const mockFindTag = vi.fn();
 const mockDeleteTags = vi.fn();
 const mockCreateTags = vi.fn();
 const mockUpdateProvider = vi.fn();
+const mockTransaction = vi.fn();
+
+const mockPrismaClientLike = {
+  listing: {
+    findUnique: (...args: unknown[]) => mockFindListing(...args),
+    create: (...args: unknown[]) => mockCreateListing(...args),
+    update: (...args: unknown[]) => mockUpdateListing(...args),
+    updateMany: (...args: unknown[]) => mockUpdateManyListing(...args),
+  },
+  category: {
+    findUnique: (...args: unknown[]) => mockFindCategory(...args),
+  },
+  tag: {
+    findUnique: (...args: unknown[]) => mockFindTag(...args),
+  },
+  listingTag: {
+    deleteMany: (...args: unknown[]) => mockDeleteTags(...args),
+    createMany: (...args: unknown[]) => mockCreateTags(...args),
+  },
+};
 
 vi.mock("@/lib/prisma", () => ({
   prisma: {
+    $transaction: (...args: unknown[]) => mockTransaction(...args),
     syncLog: {
       create: (...args: unknown[]) => mockCreateLog(...args),
       update: (...args: unknown[]) => mockUpdateLog(...args),
@@ -74,6 +95,7 @@ describe("syncProvider", () => {
     mockUpdateManyListing.mockResolvedValue({ count: 0 });
     mockUpdateProvider.mockResolvedValue({});
     mockUpdateLog.mockResolvedValue({});
+    mockTransaction.mockImplementation(async (fn) => fn(mockPrismaClientLike));
   });
 
   it("counts created listings as added", async () => {
@@ -132,5 +154,52 @@ describe("syncProvider", () => {
       },
       data: { status: "expired" },
     });
+  });
+
+  it("clears nullable fields on update when raw listing omits them", async () => {
+    mockFindListing.mockResolvedValue({ id: "existing1", slug: "intro-to-python" });
+
+    await syncProvider(makeProvider([{
+      ...raw,
+      categorySlug: undefined,
+      tagSlugs: [],
+    }]), "provider1");
+
+    expect(mockUpdateListing).toHaveBeenCalledWith(expect.objectContaining({
+      where: { id: "existing1" },
+      data: expect.objectContaining({
+        sourceUpdatedAt: null,
+        publishedAt: null,
+        companyName: null,
+        compliance: null,
+        categoryId: null,
+        metadata: {},
+      }),
+    }));
+  });
+
+  it("does not expire stale listings when provider returns an empty successful fetch", async () => {
+    const result = await syncProvider(makeProvider([]), "provider1");
+
+    expect(result.itemsFound).toBe(0);
+    expect(result.itemsExpired).toBe(0);
+    expect(mockUpdateManyListing).not.toHaveBeenCalled();
+  });
+
+  it("does not count or mark a listing as seen when tag writes fail", async () => {
+    mockFindListing.mockResolvedValue(null);
+    mockCreateListing.mockResolvedValue({ id: "listing1" });
+    mockCreateTags.mockRejectedValue(new Error("tag write failed"));
+
+    const result = await syncProvider(makeProvider([raw]), "provider1");
+
+    expect(result.itemsAdded).toBe(0);
+    expect(result.itemsUpdated).toBe(0);
+    expect(result.errors).toEqual(["Intro to Python: tag write failed"]);
+    expect(mockUpdateManyListing).toHaveBeenCalledWith(expect.objectContaining({
+      where: expect.objectContaining({
+        externalId: { notIn: [] },
+      }),
+    }));
   });
 });
