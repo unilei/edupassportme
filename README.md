@@ -50,6 +50,12 @@ Dev server runs on `http://localhost:3002` by default.
 | `ADMIN_PASSWORD` | Yes | Admin panel login password |
 | `CRON_SECRET` | No | Auth secret for cron endpoints |
 | `UDEMY_API_KEY` | No | Udemy API key for course sync |
+| `USAJOBS_API_KEY` | No | USAJOBS API key for public-sector education job sync |
+| `USAJOBS_USER_AGENT` | No | Email/user-agent registered with USAJOBS |
+| `TICKETMASTER_API_KEY` | No | Ticketmaster Discovery API key for event sync |
+| `AWIN_ACCESS_TOKEN` | No | Awin publisher API token for promotions/deals sync |
+| `AWIN_PUBLISHER_ID` | No | Awin publisher account ID |
+| `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` | No | Reserved for Adzuna jobs provider in the next source expansion |
 | `SMTP_HOST` | No | SMTP host for emails (dev: console output) |
 | `SMTP_PORT` | No | SMTP port (default: 587) |
 | `SMTP_USER` / `SMTP_PASS` | No | SMTP credentials |
