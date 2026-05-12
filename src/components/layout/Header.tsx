@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useSession, signOut, SessionProvider } from "next-auth/react";
-import { GraduationCap, Menu, X, Heart, Sparkles, User, LogOut, Crown, FileText, ChevronDown } from "lucide-react";
+import { Menu, X, Heart, Sparkles, User, LogOut, Crown, FileText, ChevronDown } from "lucide-react";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { LocaleSwitcher } from "@/components/shared/LocaleSwitcher";
 import { useI18n } from "@/lib/i18n/context";
 import { Button } from "@/components/ui/button";
+import { BrandLogo } from "@/components/layout/BrandLogo";
 import { useState, useRef, useEffect } from "react";
 
 const navKeys = [
@@ -142,11 +143,8 @@ function HeaderInner() {
     <header className="sticky top-0 z-50 w-full border-b bg-background/80 backdrop-blur-xl supports-backdrop-filter:bg-background/60">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         <div className="flex items-center gap-8">
-          <Link href="/" className="flex items-center gap-2.5 font-bold text-lg group">
-            <div className="flex items-center justify-center w-8 h-8 rounded-lg gradient-primary shadow-sm group-hover:shadow-md transition-shadow">
-              <GraduationCap className="h-5 w-5 text-white" />
-            </div>
-            <span className="bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">EDU Passport</span>
+          <Link href="/" className="group" aria-label="EDU Passport home">
+            <BrandLogo textClassName="text-lg" />
           </Link>
           <nav className="hidden md:flex items-center gap-1" aria-label="Main">
             {navKeys.map((link) => (

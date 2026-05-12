@@ -25,21 +25,17 @@ npm install
 cp .env.example .env
 # Edit .env with your values (see Environment Variables below)
 
-# 3. Start PostgreSQL (Docker)
-docker compose up -d
-
-# 4. Run database migrations + generate Prisma client
-npx prisma migrate deploy
-npx prisma generate
-
-# 5. Seed the database
-npm run db:seed
-
-# 6. Start dev server
-npm run dev
+# 3. Start all required local services and the dev server
+npm run dev:local
 ```
 
-Dev server runs on `http://localhost:3002` by default.
+Dev server runs on `http://127.0.0.1:3000` by default.
+
+Optional: seed the local database while starting:
+
+```bash
+SEED_DB=1 npm run dev:local
+```
 
 ## Environment Variables
 
@@ -74,6 +70,7 @@ Dev server runs on `http://localhost:3002` by default.
 
 ```bash
 npm run dev          # Start dev server
+npm run dev:local    # Start PostgreSQL, run migrations, generate Prisma client, then start dev server
 npm run build        # Production build
 npm run start        # Start production server
 npm run lint         # ESLint check

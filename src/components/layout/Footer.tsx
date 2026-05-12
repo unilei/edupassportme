@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { GraduationCap, Github, Twitter, Linkedin, Mail } from "lucide-react";
+import { Github, Twitter, Linkedin, Mail } from "lucide-react";
+import { BrandLogo } from "@/components/layout/BrandLogo";
 
 const footerLinks = {
   Explore: [
@@ -36,11 +37,8 @@ export function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-10">
           {/* Brand */}
           <div className="lg:col-span-2">
-            <Link href="/" className="flex items-center gap-2.5 font-bold text-lg mb-4">
-              <div className="flex items-center justify-center w-8 h-8 rounded-lg gradient-primary shadow-sm">
-                <GraduationCap className="h-5 w-5 text-white" />
-              </div>
-              <span>EDU Passport</span>
+            <Link href="/" className="group mb-4 inline-flex" aria-label="EDU Passport home">
+              <BrandLogo textClassName="text-lg" />
             </Link>
             <p className="text-sm text-muted-foreground max-w-sm leading-relaxed mb-6">
               Discover the best learning resources, online courses, and educational tools for students, educators, and lifelong learners.
