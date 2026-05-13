@@ -7,8 +7,101 @@ import { RemotiveProvider } from "./remotive";
 import { UsaJobsProvider } from "./usajobs";
 import { TicketmasterProvider } from "./ticketmaster";
 import { AwinOffersProvider } from "./awin";
+import { MicrosoftLearnProvider } from "./microsoft-learn";
+import { MitOpenCourseWareProvider } from "./mit-ocw";
+import { GitHubStudentPackProvider } from "./github-student-pack";
+import { SlickdealsEducationProvider } from "./slickdeals-education";
 import { syncProvider } from "./sync";
 import type { SyncResult } from "./types";
+
+const DEFAULT_SYNC_PROVIDERS = [
+  {
+    name: "Microsoft Learn",
+    slug: "microsoft-learn",
+    url: "https://learn.microsoft.com/training/",
+    logo: "https://learn.microsoft.com/favicon.ico",
+    description: "Free Microsoft training modules and learning paths",
+    apiType: "rest",
+    apiBaseUrl: "https://learn.microsoft.com/api/catalog/",
+    authType: "none",
+    syncFrequency: "daily",
+    rateLimitPerMinute: 60,
+    complianceNotes: "Public catalog metadata only; link users to Microsoft Learn.",
+  },
+  {
+    name: "MIT OpenCourseWare",
+    slug: "mit-ocw",
+    url: "https://ocw.mit.edu",
+    logo: "https://ocw.mit.edu/favicon.ico",
+    description: "Free MIT course materials for self-paced learning",
+    apiType: "scrape",
+    apiBaseUrl: "https://ocw.mit.edu/",
+    authType: "none",
+    syncFrequency: "daily",
+    rateLimitPerMinute: 20,
+    complianceNotes: "Use public MIT OCW pages and credit MIT OpenCourseWare as source.",
+  },
+  {
+    name: "GitHub Student Developer Pack",
+    slug: "github-student-pack",
+    url: "https://education.github.com/pack",
+    logo: "https://github.githubassets.com/favicons/favicon.svg",
+    description: "Public student developer benefit catalog from GitHub Education",
+    apiType: "rest",
+    apiBaseUrl: "https://raw.githubusercontent.com/github-education-resources/Student-Developer-Pack-Current-Partners-FAQ/main/README.md",
+    authType: "none",
+    syncFrequency: "daily",
+    rateLimitPerMinute: 60,
+    complianceNotes: "Public benefit metadata only; benefits require GitHub student verification.",
+  },
+  {
+    name: "Slickdeals Education",
+    slug: "slickdeals-education",
+    url: "https://slickdeals.net/deals/education/",
+    logo: "https://slickdeals.net/favicon.ico",
+    description: "Public education and student discount deals",
+    apiType: "scrape",
+    apiBaseUrl: "https://slickdeals.net/deals/education/",
+    authType: "none",
+    syncFrequency: "hourly",
+    rateLimitPerMinute: 20,
+    complianceNotes: "Use public Slickdeals education deal links without affiliate rewriting.",
+  },
+] as const;
+
+type DefaultSyncProviderSlug = (typeof DEFAULT_SYNC_PROVIDERS)[number]["slug"];
+
+async function ensureDefaultProvider(slug: DefaultSyncProviderSlug) {
+  const provider = DEFAULT_SYNC_PROVIDERS.find((item) => item.slug === slug);
+  if (!provider) return;
+
+  await prisma.provider.upsert({
+    where: { slug: provider.slug },
+    create: provider,
+    update: {
+      name: provider.name,
+      url: provider.url,
+      logo: provider.logo,
+      description: provider.description,
+      apiType: provider.apiType,
+      apiBaseUrl: provider.apiBaseUrl,
+      authType: provider.authType,
+      syncFrequency: provider.syncFrequency,
+      rateLimitPerMinute: provider.rateLimitPerMinute,
+      complianceNotes: provider.complianceNotes,
+    },
+  });
+}
+
+async function ensureDefaultProviders() {
+  for (const provider of DEFAULT_SYNC_PROVIDERS) {
+    await ensureDefaultProvider(provider.slug);
+  }
+}
+
+function isDefaultProviderSlug(slug: string): slug is DefaultSyncProviderSlug {
+  return DEFAULT_SYNC_PROVIDERS.some((provider) => provider.slug === slug);
+}
 
 /**
  * Create a provider instance from its DB record.
@@ -56,14 +149,17 @@ function createProviderInstance(
         publisherId: process.env.AWIN_PUBLISHER_ID,
       });
 
-    // RSS-based providers can be added here
-    // Example: an education news RSS feed
-    // case "edu-news":
-    //   return new RssProvider(config, {
-    //     feedUrl: "https://example.com/feed.xml",
-    //     listingType: "event",
-    //     categorySlug: "community-forums",
-    //   });
+    case "microsoft-learn":
+      return new MicrosoftLearnProvider(config);
+
+    case "mit-ocw":
+      return new MitOpenCourseWareProvider(config);
+
+    case "github-student-pack":
+      return new GitHubStudentPackProvider(config);
+
+    case "slickdeals-education":
+      return new SlickdealsEducationProvider(config);
 
     default:
       // manual or unsupported providers
@@ -91,7 +187,11 @@ function fatalSyncError(result: SyncResult): string | undefined {
  * Sync a single provider by its slug.
  */
 export async function syncSingleProvider(slug: string): Promise<ProviderSyncResult> {
-  const provider = await prisma.provider.findUnique({ where: { slug } });
+  let provider = await prisma.provider.findUnique({ where: { slug } });
+  if (!provider && isDefaultProviderSlug(slug)) {
+    await ensureDefaultProvider(slug);
+    provider = await prisma.provider.findUnique({ where: { slug } });
+  }
   if (!provider) {
     return { providerId: "", providerName: slug, providerSlug: slug, result: null, skipped: true, error: "Provider not found" };
   }
@@ -130,6 +230,8 @@ export async function syncSingleProvider(slug: string): Promise<ProviderSyncResu
  * Sync all active providers that have implementations.
  */
 export async function syncAllProviders(): Promise<ProviderSyncResult[]> {
+  await ensureDefaultProviders();
+
   const providers = await prisma.provider.findMany({
     where: { isActive: true },
     orderBy: { name: "asc" },

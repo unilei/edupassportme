@@ -35,6 +35,11 @@ export const env = {
 
   // Provider keys
   UDEMY_API_KEY: optional("UDEMY_API_KEY"),
+  USAJOBS_API_KEY: optional("USAJOBS_API_KEY"),
+  USAJOBS_USER_AGENT: optional("USAJOBS_USER_AGENT"),
+  TICKETMASTER_API_KEY: optional("TICKETMASTER_API_KEY"),
+  AWIN_ACCESS_TOKEN: optional("AWIN_ACCESS_TOKEN"),
+  AWIN_PUBLISHER_ID: optional("AWIN_PUBLISHER_ID"),
 
   // SMTP
   SMTP_HOST: optional("SMTP_HOST"),

@@ -44,12 +44,12 @@ NEXT_PUBLIC_SITE_NAME=EDU Passport
 SMTP_*
 STRIPE_*
 OPENAI_*
-UDEMY_API_KEY
+UDEMY_API_KEY (optional legacy course source)
 USAJOBS_API_KEY
 USAJOBS_USER_AGENT
 TICKETMASTER_API_KEY
-AWIN_ACCESS_TOKEN
-AWIN_PUBLISHER_ID
+AWIN_ACCESS_TOKEN (optional legacy deals source)
+AWIN_PUBLISHER_ID (optional legacy deals source)
 ```
 
 For this server, the checked local defaults are:
@@ -78,4 +78,6 @@ prints only key names, never secret values.
 
 `.github/workflows/sync.yml` calls `/api/cron/sync` every 4 hours using
 `NEXT_PUBLIC_SITE_URL` and `CRON_SECRET`. Providers without credentials are
-skipped by the app and shown in the admin sync dashboard.
+skipped by the app and shown in the admin sync dashboard. Course and deal sync
+also includes public no-account providers: Microsoft Learn, MIT OpenCourseWare,
+GitHub Student Developer Pack, and Slickdeals Education.

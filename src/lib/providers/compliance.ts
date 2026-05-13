@@ -47,6 +47,22 @@ export const PROVIDER_COMPLIANCE: Record<string, ProviderCompliance> = {
     pastEventStorageAllowed: true,
     notes: "Publisher promotions and voucher codes can use tracked links when account access permits it.",
   },
+  "github-student-pack": {
+    attributionRequired: true,
+    attributionText: "Source: GitHub Student Developer Pack",
+    directLinkRequired: true,
+    affiliateAllowed: false,
+    pastEventStorageAllowed: true,
+    notes: "Use public GitHub Education offer links and avoid presenting partner benefits as EDU Passport-issued discounts.",
+  },
+  "slickdeals-education": {
+    attributionRequired: true,
+    attributionText: "Source: Slickdeals",
+    directLinkRequired: true,
+    affiliateAllowed: false,
+    pastEventStorageAllowed: true,
+    notes: "Use public Slickdeals education deal links without affiliate rewriting.",
+  },
 };
 
 export function getProviderCompliance(slug: string): ProviderCompliance | undefined {

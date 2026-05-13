@@ -45,12 +45,12 @@ SEED_DB=1 npm run dev:local
 | `NEXTAUTH_SECRET` | Yes | Random secret for session encryption |
 | `ADMIN_PASSWORD` | Yes | Admin panel login password |
 | `CRON_SECRET` | No | Auth secret for cron endpoints |
-| `UDEMY_API_KEY` | No | Udemy API key for course sync |
+| `UDEMY_API_KEY` | No | Optional legacy Udemy API key for course sync |
 | `USAJOBS_API_KEY` | No | USAJOBS API key for public-sector education job sync |
 | `USAJOBS_USER_AGENT` | No | Email/user-agent registered with USAJOBS |
 | `TICKETMASTER_API_KEY` | No | Ticketmaster Discovery API key for event sync |
-| `AWIN_ACCESS_TOKEN` | No | Awin publisher API token for promotions/deals sync |
-| `AWIN_PUBLISHER_ID` | No | Awin publisher account ID |
+| `AWIN_ACCESS_TOKEN` | No | Optional legacy Awin publisher API token for promotions/deals sync |
+| `AWIN_PUBLISHER_ID` | No | Optional legacy Awin publisher account ID |
 | `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` | No | Reserved for Adzuna jobs provider in the next source expansion |
 | `SMTP_HOST` | No | SMTP host for emails (dev: console output) |
 | `SMTP_PORT` | No | SMTP port (default: 587) |
@@ -60,6 +60,9 @@ SEED_DB=1 npm run dev:local
 | `STRIPE_WEBHOOK_SECRET` | No | Stripe webhook signing secret |
 | `STRIPE_PRO_MONTHLY_PRICE_ID` | No | Stripe Price ID for monthly plan |
 | `STRIPE_PRO_YEARLY_PRICE_ID` | No | Stripe Price ID for yearly plan |
+
+Course and deal sync also includes no-account public providers: Microsoft Learn,
+MIT OpenCourseWare, GitHub Student Developer Pack, and Slickdeals Education.
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | No | Stripe publishable key (client) |
 | `OPENAI_API_KEY` | No | OpenAI API key for AI features |
 | `OPENAI_MODEL` | No | Model name (default: gpt-4o-mini) |

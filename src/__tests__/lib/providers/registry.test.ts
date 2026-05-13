@@ -1,9 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { SyncResult } from "@/lib/providers/types";
 
-const { mockProviderFindMany, mockProviderFindUnique, mockSyncProvider } = vi.hoisted(() => ({
+const { mockProviderFindMany, mockProviderFindUnique, mockProviderUpsert, mockSyncProvider } = vi.hoisted(() => ({
   mockProviderFindMany: vi.fn(),
   mockProviderFindUnique: vi.fn(),
+  mockProviderUpsert: vi.fn(),
   mockSyncProvider: vi.fn(),
 }));
 
@@ -12,6 +13,7 @@ vi.mock("@/lib/prisma", () => ({
     provider: {
       findMany: (...args: unknown[]) => mockProviderFindMany(...args),
       findUnique: (...args: unknown[]) => mockProviderFindUnique(...args),
+      upsert: (...args: unknown[]) => mockProviderUpsert(...args),
     },
   },
 }));
@@ -46,8 +48,28 @@ function makeResult(overrides: Partial<SyncResult>): SyncResult {
 describe("provider registry sync", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockProviderUpsert.mockResolvedValue({});
     delete process.env.USAJOBS_API_KEY;
     delete process.env.USAJOBS_USER_AGENT;
+  });
+
+  it("bootstraps password-free providers before syncing all providers", async () => {
+    mockProviderFindMany.mockResolvedValue([]);
+
+    await syncAllProviders();
+
+    expect(mockProviderUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: { slug: "microsoft-learn" },
+    }));
+    expect(mockProviderUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: { slug: "mit-ocw" },
+    }));
+    expect(mockProviderUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: { slug: "github-student-pack" },
+    }));
+    expect(mockProviderUpsert).toHaveBeenCalledWith(expect.objectContaining({
+      where: { slug: "slickdeals-education" },
+    }));
   });
 
   it("sets a top-level error for fatal provider sync results", async () => {
