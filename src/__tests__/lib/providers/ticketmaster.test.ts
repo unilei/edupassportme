@@ -43,6 +43,6 @@ describe("TicketmasterProvider", () => {
       region: "CA",
       priceLabel: "$20-$100",
     });
-    expect(fetchUrl.searchParams.get("sort")).toBe("eventDate,date.asc");
+    expect(fetchUrl.searchParams.get("sort")).toBe("date,asc");
   });
 });

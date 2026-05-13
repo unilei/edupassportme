@@ -48,7 +48,7 @@ export class TicketmasterProvider extends BaseProvider {
       keyword: "education OR edtech OR learning",
       countryCode: "US",
       size: "50",
-      sort: "eventDate,date.asc",
+      sort: "date,asc",
     });
     const res = await this.fetchWithRetry(`https://app.ticketmaster.com/discovery/v2/events.json?${params}`);
     const data = (await res.json()) as TicketmasterResponse;
