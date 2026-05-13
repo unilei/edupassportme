@@ -45,6 +45,11 @@ SMTP_*
 STRIPE_*
 OPENAI_*
 UDEMY_API_KEY
+USAJOBS_API_KEY
+USAJOBS_USER_AGENT
+TICKETMASTER_API_KEY
+AWIN_ACCESS_TOKEN
+AWIN_PUBLISHER_ID
 ```
 
 For this server, the checked local defaults are:
@@ -68,3 +73,9 @@ prints only key names, never secret values.
 2. `Deploy Production` builds and pushes `ghcr.io/unilei/edupassportme:sha-<commit>`.
 3. The workflow uploads the compose file, deploy script, and generated env file to the server.
 4. The server logs in to GHCR, pulls the image, starts PostgreSQL, runs Prisma migrations, updates the app, and verifies `/api/health`.
+
+## Data Sync
+
+`.github/workflows/sync.yml` calls `/api/cron/sync` every 4 hours using
+`NEXT_PUBLIC_SITE_URL` and `CRON_SECRET`. Providers without credentials are
+skipped by the app and shown in the admin sync dashboard.
