@@ -50,4 +50,5 @@ next-env.d.ts
 
 # env example should be committed
 !.env.example
+!deploy/.env.production.example
 .playwright-mcp
