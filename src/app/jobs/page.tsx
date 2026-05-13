@@ -7,7 +7,7 @@ import { ListingCard } from "@/components/listing/ListingCard";
 import { ItemPagination } from "@/components/shared/Pagination";
 import { activeListingWhere } from "@/lib/listing-visibility";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 const PER_PAGE = 12;
 
 export const metadata: Metadata = createMetadata({

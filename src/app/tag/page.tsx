@@ -5,7 +5,7 @@ import { createMetadata } from "@/lib/metadata";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { Badge } from "@/components/ui/badge";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = createMetadata({
   title: "All Tags",

@@ -6,17 +6,12 @@ import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { ItemGrid } from "@/components/item/ItemGrid";
 import { ItemPagination } from "@/components/shared/Pagination";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 const ITEMS_PER_PAGE = 12;
 
 interface PageProps {
   params: Promise<{ slug: string }>;
   searchParams: Promise<{ page?: string }>;
-}
-
-export async function generateStaticParams() {
-  const categories = await prisma.category.findMany({ select: { slug: true } });
-  return categories.map((c) => ({ slug: c.slug }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

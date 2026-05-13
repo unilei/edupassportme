@@ -6,7 +6,7 @@ import { createMetadata } from "@/lib/metadata";
 import { User, Star, GraduationCap, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ id: string }>;

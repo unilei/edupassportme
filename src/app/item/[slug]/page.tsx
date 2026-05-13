@@ -11,15 +11,10 @@ import { TagBadge } from "@/components/shared/TagBadge";
 import { Button } from "@/components/ui/button";
 import { ItemGrid } from "@/components/item/ItemGrid";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
-}
-
-export async function generateStaticParams() {
-  const items = await prisma.item.findMany({ select: { slug: true } });
-  return items.map((item) => ({ slug: item.slug }));
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {

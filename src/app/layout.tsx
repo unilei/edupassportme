@@ -1,5 +1,4 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { Header } from "@/components/layout/Header";
@@ -10,11 +9,6 @@ import { BottomNavWrapper } from "@/components/layout/BottomNavWrapper";
 import { getServerLocale } from "@/lib/i18n/server";
 import { ClientProviders } from "@/components/ClientProviders";
 import { AuthSessionProvider } from "@/components/AuthSessionProvider";
-
-const inter = Inter({
-  variable: "--font-sans",
-  subsets: ["latin"],
-});
 
 const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -64,7 +58,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} suppressHydrationWarning>
-      <body className={`${inter.variable} font-sans antialiased`}>
+      <body className="font-sans antialiased">
         <ThemeProvider>
           <AuthSessionProvider>
             <I18nProvider initialLocale={locale}>

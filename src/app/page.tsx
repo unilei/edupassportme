@@ -10,7 +10,7 @@ import { NewsletterSection } from "@/components/home/NewsletterSection";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { activeListingWhere } from "@/lib/listing-visibility";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 const listingInclude = {
   provider: { select: { name: true, slug: true, logo: true } },

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { createMetadata, jsonLdItemList, SITE_URL } from "@/lib/metadata";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = createMetadata({
   title: "All Categories",

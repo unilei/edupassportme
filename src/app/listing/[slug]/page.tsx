@@ -13,7 +13,7 @@ import { ShareButton } from "@/components/listing/ShareButton";
 import { AiSummaryButton } from "@/components/ai/AiSummaryButton";
 import { activeListingWhere } from "@/lib/listing-visibility";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 interface PageProps {
   params: Promise<{ slug: string }>;

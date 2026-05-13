@@ -1,0 +1,242 @@
+name: Deploy Production
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Git ref to deploy. Defaults to the current main branch."
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: true
+
+env:
+  DEPLOY_REF: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || inputs.ref || github.sha }}
+
+jobs:
+  build-image:
+    name: Build and Push Image
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    outputs:
+      image: ${{ steps.image.outputs.image }}
+      image_latest: ${{ steps.image.outputs.image_latest }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_REF }}
+
+      - name: Set image names
+        id: image
+        shell: bash
+        run: |
+          deploy_sha="$(git rev-parse HEAD)"
+          image_name="ghcr.io/${GITHUB_REPOSITORY,,}"
+          echo "image=${image_name}:sha-${deploy_sha}" >> "$GITHUB_OUTPUT"
+          echo "image_latest=${image_name}:latest" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ github.token }}
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ steps.image.outputs.image }}
+            ${{ steps.image.outputs.image_latest }}
+          build-args: |
+            NEXT_PUBLIC_SITE_URL=${{ vars.NEXT_PUBLIC_SITE_URL || secrets.NEXT_PUBLIC_SITE_URL || 'https://edupassport.me' }}
+            NEXT_PUBLIC_SITE_NAME=${{ vars.NEXT_PUBLIC_SITE_NAME || 'EDU Passport' }}
+            NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY=${{ vars.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || '' }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy to Server
+    runs-on: ubuntu-latest
+    needs: build-image
+    environment: production
+    steps:
+      - name: Checkout deploy files
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.DEPLOY_REF }}
+
+      - name: Validate required secrets
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL || vars.NEXT_PUBLIC_SITE_URL }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          required=(
+            DEPLOY_HOST
+            DEPLOY_USER
+            DEPLOY_SSH_KEY
+            POSTGRES_PASSWORD
+            NEXTAUTH_SECRET
+            NEXTAUTH_URL
+            NEXT_PUBLIC_SITE_URL
+            ADMIN_PASSWORD
+            CRON_SECRET
+          )
+
+          missing=()
+          for name in "${required[@]}"; do
+            if [ -z "${!name:-}" ]; then
+              missing+=("$name")
+            fi
+          done
+
+          if [ "${#missing[@]}" -gt 0 ]; then
+            printf '[ERROR] Missing required GitHub Secrets/Variables: %s\n' "${missing[*]}"
+            exit 1
+          fi
+
+      - name: Generate production env file
+        shell: bash
+        env:
+          APP_IMAGE: ${{ needs.build-image.outputs.image }}
+          APP_PORT: ${{ vars.APP_PORT || secrets.APP_PORT || '3000' }}
+          POSTGRES_USER: ${{ secrets.POSTGRES_USER || vars.POSTGRES_USER || 'edupassport' }}
+          POSTGRES_PASSWORD: ${{ secrets.POSTGRES_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.POSTGRES_DB || vars.POSTGRES_DB || 'edupassport' }}
+          NEXTAUTH_SECRET: ${{ secrets.NEXTAUTH_SECRET }}
+          NEXTAUTH_URL: ${{ secrets.NEXTAUTH_URL }}
+          NEXT_PUBLIC_SITE_URL: ${{ secrets.NEXT_PUBLIC_SITE_URL || vars.NEXT_PUBLIC_SITE_URL }}
+          NEXT_PUBLIC_SITE_NAME: ${{ vars.NEXT_PUBLIC_SITE_NAME || 'EDU Passport' }}
+          ADMIN_PASSWORD: ${{ secrets.ADMIN_PASSWORD }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_TOKEN: ${{ github.token }}
+          UDEMY_API_KEY: ${{ secrets.UDEMY_API_KEY }}
+          SMTP_HOST: ${{ secrets.SMTP_HOST }}
+          SMTP_PORT: ${{ vars.SMTP_PORT || secrets.SMTP_PORT || '587' }}
+          SMTP_SECURE: ${{ vars.SMTP_SECURE || secrets.SMTP_SECURE || 'false' }}
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_FROM: ${{ vars.SMTP_FROM || secrets.SMTP_FROM || 'noreply@edupassport.me' }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRO_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_PRO_MONTHLY_PRICE_ID }}
+          STRIPE_PRO_YEARLY_PRICE_ID: ${{ secrets.STRIPE_PRO_YEARLY_PRICE_ID }}
+          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: ${{ vars.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY || secrets.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          OPENAI_MODEL: ${{ vars.OPENAI_MODEL || secrets.OPENAI_MODEL || 'gpt-4o-mini' }}
+          LOG_LEVEL: ${{ vars.LOG_LEVEL || 'info' }}
+        run: |
+          node <<'NODE'
+          const fs = require("fs");
+          const keys = [
+            "APP_IMAGE",
+            "APP_PORT",
+            "POSTGRES_USER",
+            "POSTGRES_PASSWORD",
+            "POSTGRES_DB",
+            "NEXTAUTH_SECRET",
+            "NEXTAUTH_URL",
+            "NEXT_PUBLIC_SITE_URL",
+            "NEXT_PUBLIC_SITE_NAME",
+            "ADMIN_PASSWORD",
+            "CRON_SECRET",
+            "GHCR_USERNAME",
+            "GHCR_TOKEN",
+            "UDEMY_API_KEY",
+            "SMTP_HOST",
+            "SMTP_PORT",
+            "SMTP_SECURE",
+            "SMTP_USER",
+            "SMTP_PASS",
+            "SMTP_FROM",
+            "STRIPE_SECRET_KEY",
+            "STRIPE_WEBHOOK_SECRET",
+            "STRIPE_PRO_MONTHLY_PRICE_ID",
+            "STRIPE_PRO_YEARLY_PRICE_ID",
+            "NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY",
+            "OPENAI_API_KEY",
+            "OPENAI_MODEL",
+            "LOG_LEVEL",
+          ];
+          const quote = (value) => {
+            const escaped = String(value ?? "")
+              .replace(/\\/g, "\\\\")
+              .replace(/"/g, '\\"')
+              .replace(/\$/g, "\\$")
+              .replace(/`/g, "\\`")
+              .replace(/\r/g, "\\r")
+              .replace(/\n/g, "\\n");
+            return `"${escaped}"`;
+          };
+          fs.writeFileSync(
+            ".env.production",
+            keys.map((key) => `${key}=${quote(process.env[key] || "")}`).join("\n") + "\n",
+            { mode: 0o600 },
+          );
+          NODE
+
+      - name: Validate production compose
+        run: docker compose --env-file .env.production -f deploy/docker-compose.prod.yml config --quiet
+
+      - name: Configure SSH
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || vars.DEPLOY_PORT || '22' }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          ssh-keyscan -p "$DEPLOY_PORT" -H "$DEPLOY_HOST" >> ~/.ssh/known_hosts
+
+      - name: Upload deployment files
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || vars.DEPLOY_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || vars.DEPLOY_PATH || '/opt/edupassport.me' }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" "mkdir -p '$DEPLOY_PATH'"
+          scp -i ~/.ssh/deploy_key -P "$DEPLOY_PORT" \
+            deploy/docker-compose.prod.yml \
+            deploy/remote-deploy.sh \
+            .env.production \
+            "$DEPLOY_USER@$DEPLOY_HOST:$DEPLOY_PATH/"
+
+      - name: Run remote deployment
+        shell: bash
+        env:
+          DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
+          DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
+          DEPLOY_PORT: ${{ secrets.DEPLOY_PORT || vars.DEPLOY_PORT || '22' }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH || vars.DEPLOY_PATH || '/opt/edupassport.me' }}
+        run: |
+          ssh -i ~/.ssh/deploy_key -p "$DEPLOY_PORT" "$DEPLOY_USER@$DEPLOY_HOST" \
+            "cd '$DEPLOY_PATH' && chmod +x remote-deploy.sh && ./remote-deploy.sh"

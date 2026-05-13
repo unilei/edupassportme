@@ -85,6 +85,38 @@ npm run test:coverage # Test coverage report
 npm run test:e2e     # Playwright end-to-end tests
 ```
 
+## Production Deployment
+
+Production deploys are handled by GitHub Actions after the `CI` workflow passes on `main`.
+
+Deployment flow:
+
+1. Build the Docker image from `Dockerfile`.
+2. Push `ghcr.io/unilei/edupassportme:sha-<commit>` and `latest` to GHCR.
+3. SSH into the server.
+4. Upload `deploy/docker-compose.prod.yml`, `deploy/remote-deploy.sh`, and a generated `.env.production`.
+5. Pull the new image, start PostgreSQL, run Prisma migrations, update the app container, and verify `/api/health`.
+
+Required GitHub Secrets:
+
+| Secret | Purpose |
+| --- | --- |
+| `DEPLOY_HOST` | Server hostname or IP |
+| `DEPLOY_USER` | SSH user on the server |
+| `DEPLOY_SSH_KEY` | Private SSH key for deployment |
+| `POSTGRES_PASSWORD` | Production PostgreSQL password |
+| `NEXTAUTH_SECRET` | NextAuth session secret |
+| `NEXTAUTH_URL` | Production URL, for example `https://edupassport.me` |
+| `NEXT_PUBLIC_SITE_URL` | Public production URL |
+| `ADMIN_PASSWORD` | Admin login password |
+| `CRON_SECRET` | Secret for `/api/cron/*` endpoints |
+
+GitHub Actions uses the built-in workflow token for GHCR push/pull during deployment, so no long-lived GHCR PAT is required.
+
+Optional GitHub Variables or Secrets:
+
+`DEPLOY_PORT` (default `22`), `DEPLOY_PATH` (default `/opt/edupassport.me`), `APP_PORT` (default `3000`), `POSTGRES_USER` (default `edupassport`), `POSTGRES_DB` (default `edupassport`), plus SMTP, Stripe, OpenAI, and provider API keys from the environment table above.
+
 ## Project Structure
 
 ```text

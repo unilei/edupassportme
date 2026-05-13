@@ -6,7 +6,7 @@ import { DealCard } from "@/components/home/DealCard";
 import { ListingCard } from "@/components/listing/ListingCard";
 import { activeListingWhere } from "@/lib/listing-visibility";
 
-export const revalidate = 3600;
+export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = createMetadata({
   title: "Education Deals & Discounts",
