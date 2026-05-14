@@ -1,8 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockProviderFindMany, mockSyncLogFindMany } = vi.hoisted(() => ({
+const { mockGetServerSession, mockProviderFindMany, mockSyncLogFindMany } = vi.hoisted(() => ({
+  mockGetServerSession: vi.fn(),
   mockProviderFindMany: vi.fn(),
   mockSyncLogFindMany: vi.fn(),
+}));
+
+vi.mock("next-auth", () => ({
+  getServerSession: mockGetServerSession,
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -21,6 +26,18 @@ import { GET } from "@/app/api/admin/sync/route";
 describe("GET /api/admin/sync", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockGetServerSession.mockResolvedValue({ user: { email: "admin@edupassport.me" } });
+  });
+
+  it("requires an admin session for provider observability", async () => {
+    mockGetServerSession.mockResolvedValue(null);
+
+    const res = await GET();
+    const body = await res.json();
+
+    expect(res.status).toBe(401);
+    expect(body).toEqual({ error: "Unauthorized" });
+    expect(mockProviderFindMany).not.toHaveBeenCalled();
   });
 
   it("returns provider health and recent sync log observability fields", async () => {
@@ -31,6 +48,7 @@ describe("GET /api/admin/sync", () => {
         slug: "coursera",
         isActive: true,
         apiType: "api",
+        apiBaseUrl: "https://api.coursera.org/api",
         authType: "oauth",
         rateLimitPerMinute: 60,
         syncFrequency: "daily",
@@ -40,6 +58,23 @@ describe("GET /api/admin/sync", () => {
         failureCount: 0,
         complianceNotes: "Public catalog only",
         _count: { listings: 10, syncLogs: 2 },
+      },
+      {
+        id: "provider-2",
+        name: "Udemy",
+        slug: "udemy-provider",
+        isActive: true,
+        apiType: "rest",
+        apiBaseUrl: "https://www.udemy.com/api-2.0",
+        authType: "api_key",
+        rateLimitPerMinute: 60,
+        syncFrequency: "daily",
+        lastSyncAt: null,
+        lastSuccessfulSyncAt: null,
+        lastFailedSyncAt: null,
+        failureCount: 0,
+        complianceNotes: null,
+        _count: { listings: 0, syncLogs: 0 },
       },
     ]);
     mockSyncLogFindMany.mockResolvedValue([
@@ -71,6 +106,35 @@ describe("GET /api/admin/sync", () => {
       rateLimitPerMinute: 60,
       failureCount: 0,
       complianceNotes: "Public catalog only",
+      runtimeStatus: {
+        implemented: true,
+        configured: true,
+        canSync: true,
+      },
+      health: "healthy",
+      latestLog: {
+        status: "success",
+        itemsFound: 5,
+        itemsAdded: 1,
+        itemsUpdated: 2,
+      },
+    });
+    expect(body.providers[1]).toMatchObject({
+      slug: "udemy-provider",
+      runtimeStatus: {
+        implemented: true,
+        configured: false,
+        canSync: false,
+      },
+      health: "needs_configuration",
+    });
+    expect(body.summary).toMatchObject({
+      totalProviders: 2,
+      activeProviders: 2,
+      syncableProviders: 1,
+      healthyProviders: 1,
+      actionRequiredProviders: 1,
+      totalListings: 10,
     });
     expect(body.recentLogs[0]).toMatchObject({
       id: "sync-log-1",
@@ -82,6 +146,7 @@ describe("GET /api/admin/sync", () => {
     expect(mockProviderFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
         select: expect.objectContaining({
+          apiBaseUrl: true,
           authType: true,
           rateLimitPerMinute: true,
           lastSuccessfulSyncAt: true,

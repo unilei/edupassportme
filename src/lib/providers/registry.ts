@@ -167,6 +167,54 @@ function createProviderInstance(
   }
 }
 
+export interface ProviderRuntimeStatus {
+  implemented: boolean;
+  configured: boolean;
+  canSync: boolean;
+  missingConfigReason: string | null;
+  disabledReason: string | null;
+}
+
+export function getProviderRuntimeStatus(provider: {
+  slug: string;
+  name: string;
+  apiBaseUrl: string | null;
+  apiType: string;
+  isActive?: boolean;
+}): ProviderRuntimeStatus {
+  if (provider.isActive === false) {
+    return {
+      implemented: false,
+      configured: false,
+      canSync: false,
+      missingConfigReason: null,
+      disabledReason: "Provider is inactive",
+    };
+  }
+
+  const instance = createProviderInstance(provider);
+  if (!instance) {
+    return {
+      implemented: false,
+      configured: false,
+      canSync: false,
+      missingConfigReason: null,
+      disabledReason: "No implementation available",
+    };
+  }
+
+  const configured = instance.isConfigured();
+  const missingConfigReason = configured ? null : instance.getMissingConfigReason();
+
+  return {
+    implemented: true,
+    configured,
+    canSync: configured,
+    missingConfigReason,
+    disabledReason: configured ? null : missingConfigReason,
+  };
+}
+
 export interface ProviderSyncResult {
   providerId: string;
   providerName: string;

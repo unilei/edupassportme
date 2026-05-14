@@ -1,7 +1,30 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { syncAllProviders, syncSingleProvider } from "@/lib/providers/registry";
+import { getProviderRuntimeStatus, syncAllProviders, syncSingleProvider } from "@/lib/providers/registry";
+
+type ProviderHealth = "healthy" | "failing" | "needs_configuration" | "unsupported" | "inactive" | "never_synced";
+
+function resolveProviderHealth(
+  provider: { isActive: boolean; lastSuccessfulSyncAt: Date | null; failureCount: number },
+  runtimeStatus: ReturnType<typeof getProviderRuntimeStatus>,
+  latestLog?: { status: string } | null,
+): ProviderHealth {
+  if (!provider.isActive) return "inactive";
+  if (!runtimeStatus.implemented) return "unsupported";
+  if (!runtimeStatus.configured) return "needs_configuration";
+  if (provider.failureCount > 0 || latestLog?.status === "error") return "failing";
+  if (provider.lastSuccessfulSyncAt || latestLog?.status === "success") return "healthy";
+  return "never_synced";
+}
+
+function maxDate(dates: Array<Date | null | undefined>): Date | null {
+  const timestamps = dates
+    .map((date) => date?.getTime())
+    .filter((timestamp): timestamp is number => typeof timestamp === "number");
+  if (timestamps.length === 0) return null;
+  return new Date(Math.max(...timestamps));
+}
 
 export async function POST(request: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -27,7 +50,11 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  // GET returns provider status overview (no auth needed for status check)
+  const session = await getServerSession(authOptions);
+  if (!session) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { prisma } = await import("@/lib/prisma");
 
   const providers = await prisma.provider.findMany({
@@ -38,6 +65,7 @@ export async function GET() {
       slug: true,
       isActive: true,
       apiType: true,
+      apiBaseUrl: true,
       authType: true,
       rateLimitPerMinute: true,
       syncFrequency: true,
@@ -52,9 +80,41 @@ export async function GET() {
 
   const recentLogs = await prisma.syncLog.findMany({
     orderBy: { startedAt: "desc" },
-    take: 20,
+    take: 50,
     include: { provider: { select: { name: true, slug: true } } },
   });
 
-  return NextResponse.json({ providers, recentLogs });
+  const latestLogByProviderId = new Map<string, (typeof recentLogs)[number]>();
+  for (const log of recentLogs) {
+    if (!latestLogByProviderId.has(log.providerId)) {
+      latestLogByProviderId.set(log.providerId, log);
+    }
+  }
+
+  const providersWithStatus = providers.map((provider) => {
+    const latestLog = latestLogByProviderId.get(provider.id) ?? null;
+    const runtimeStatus = getProviderRuntimeStatus(provider);
+    const health = resolveProviderHealth(provider, runtimeStatus, latestLog);
+
+    return {
+      ...provider,
+      runtimeStatus,
+      health,
+      latestLog,
+    };
+  });
+
+  const actionRequiredHealth: ProviderHealth[] = ["failing", "needs_configuration", "unsupported"];
+  const summary = {
+    totalProviders: providersWithStatus.length,
+    activeProviders: providersWithStatus.filter((provider) => provider.isActive).length,
+    syncableProviders: providersWithStatus.filter((provider) => provider.isActive && provider.runtimeStatus.canSync).length,
+    healthyProviders: providersWithStatus.filter((provider) => provider.health === "healthy").length,
+    actionRequiredProviders: providersWithStatus.filter((provider) => actionRequiredHealth.includes(provider.health)).length,
+    totalListings: providersWithStatus.reduce((sum, provider) => sum + provider._count.listings, 0),
+    lastSuccessfulSyncAt: maxDate(providersWithStatus.map((provider) => provider.lastSuccessfulSyncAt)),
+    lastRunAt: maxDate(recentLogs.map((log) => log.startedAt)),
+  };
+
+  return NextResponse.json({ providers: providersWithStatus, recentLogs: recentLogs.slice(0, 20), summary });
 }
