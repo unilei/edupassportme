@@ -12,8 +12,7 @@ const userOnlyPages = [
 ];
 
 async function expectSignedOutProtection(page: Page, path: string) {
-  await page.goto(path);
-  await page.waitForLoadState("networkidle").catch(() => {});
+  await page.goto(path, { waitUntil: "domcontentloaded" });
 
   const currentUrl = new URL(page.url());
   if (currentUrl.pathname === "/auth/signin") {
