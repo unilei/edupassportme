@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useSession, signOut, SessionProvider } from "next-auth/react";
+import { useSession, signOut } from "next-auth/react";
 import { Menu, X, Heart, Sparkles, User, LogOut, Crown, FileText, ChevronDown, Target } from "lucide-react";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { NotificationBell } from "@/components/layout/NotificationBell";
@@ -207,9 +207,5 @@ function HeaderInner() {
 }
 
 export function Header() {
-  return (
-    <SessionProvider>
-      <HeaderInner />
-    </SessionProvider>
-  );
+  return <HeaderInner />;
 }
