@@ -1,13 +1,13 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockGetServerSession, mockProviderFindMany, mockSyncLogFindMany } = vi.hoisted(() => ({
-  mockGetServerSession: vi.fn(),
+const { mockRequireAdmin, mockProviderFindMany, mockSyncLogFindMany } = vi.hoisted(() => ({
+  mockRequireAdmin: vi.fn(),
   mockProviderFindMany: vi.fn(),
   mockSyncLogFindMany: vi.fn(),
 }));
 
-vi.mock("next-auth", () => ({
-  getServerSession: mockGetServerSession,
+vi.mock("@/lib/admin", () => ({
+  requireAdmin: mockRequireAdmin,
 }));
 
 vi.mock("@/lib/prisma", () => ({
@@ -26,11 +26,11 @@ import { GET } from "@/app/api/admin/sync/route";
 describe("GET /api/admin/sync", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockGetServerSession.mockResolvedValue({ user: { email: "admin@edupassport.me" } });
+    mockRequireAdmin.mockResolvedValue({ user: { id: "admin", role: "admin" } });
   });
 
   it("requires an admin session for provider observability", async () => {
-    mockGetServerSession.mockResolvedValue(null);
+    mockRequireAdmin.mockResolvedValue(null);
 
     const res = await GET();
     const body = await res.json();

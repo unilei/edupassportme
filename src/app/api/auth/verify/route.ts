@@ -7,18 +7,24 @@ export async function GET(request: NextRequest) {
   const token = searchParams.get("token");
 
   if (!token) {
-    return NextResponse.json({ error: "Token is required" }, { status: 400 });
+    return NextResponse.json({ error: "Token is required", code: "TOKEN_REQUIRED" }, { status: 400 });
   }
 
   const record = await prisma.verificationToken.findUnique({ where: { token } });
 
   if (!record) {
-    return NextResponse.json({ error: "Invalid or expired token" }, { status: 400 });
+    return NextResponse.json({
+      error: "Invalid or expired verification link. Please request a new verification email.",
+      code: "INVALID_OR_EXPIRED_TOKEN",
+    }, { status: 400 });
   }
 
   if (record.expiresAt < new Date()) {
     await prisma.verificationToken.delete({ where: { id: record.id } });
-    return NextResponse.json({ error: "Token has expired. Please request a new verification email." }, { status: 400 });
+    return NextResponse.json({
+      error: "Token has expired. Please request a new verification email.",
+      code: "TOKEN_EXPIRED",
+    }, { status: 400 });
   }
 
   // Mark user as verified

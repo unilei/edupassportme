@@ -1,9 +1,9 @@
 import { createMetadata } from "@/lib/metadata";
 
 export const metadata = createMetadata({
-  title: "Saved Listings",
+  title: "Saved Opportunities",
   description:
-    "View and manage your saved courses, jobs, events, and deals on EDU Passport.",
+    "View, prioritize, and track your saved student opportunities on EDU Passport.",
   path: "/saved",
   noIndex: true,
 });

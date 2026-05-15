@@ -2,73 +2,43 @@
 
 import { useSession } from "next-auth/react";
 import { SessionProvider } from "next-auth/react";
-import { Check, X, Crown, Zap, Sparkles, Shield, ArrowRight, Star } from "lucide-react";
+import { Check, X, Crown, Zap, Sparkles, Shield, ArrowRight, Star, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import Link from "next/link";
 
 const features = [
-  { name: "Browse all listings", free: true, pro: true },
-  { name: "Save up to 20 listings", free: true, pro: false, proLabel: "Unlimited saves" },
-  { name: "Personalized recommendations", free: true, pro: true },
+  { name: "Browse all opportunities", free: true, pro: true },
+  { name: "Track up to 20 opportunities", free: true, pro: false, proLabel: "Unlimited opportunity tracking" },
+  { name: "Personalized recommendations", free: true, pro: false, proLabel: "Priority recommendations with fit reasons" },
   { name: "Up to 3 saved searches", free: true, pro: false, proLabel: "Unlimited saved searches" },
   { name: "Sponsored ads shown", free: true, pro: false, proLabel: "Ad-free experience" },
   { name: "Quick Apply for jobs", free: false, pro: true },
-  { name: "Resume builder & storage", free: false, pro: true },
-  { name: "Application tracking", free: false, pro: true },
-  { name: "Priority in recommendations", free: false, pro: true },
+  { name: "Deadline and next-action reminders", free: false, pro: true },
+  { name: "Application pipeline tracking", free: false, pro: true },
   { name: "Early access to new features", free: false, pro: true },
 ];
 
+const SUPPORT_EMAIL = "support@edupassport.me";
+
 function PricingContent() {
   const { data: session, status } = useSession();
-  const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
   const [billing, setBilling] = useState<"monthly" | "annual">("annual");
 
   const userId = (session?.user as Record<string, unknown> | undefined)?.id as string | undefined;
   const userTier = (session?.user as Record<string, unknown> | undefined)?.tier as string | undefined;
+  const userEmail = session?.user?.email || "";
   const isPro = userTier === "pro";
-
-  const handleUpgrade = async (plan: string) => {
-    if (!userId || userId === "admin") return;
-    setLoading(true);
-    try {
-      const res = await fetch("/api/user/upgrade", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
-      });
-      if (res.ok) {
-        setSuccess(true);
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (success) {
-    return (
-      <div className="mx-auto max-w-2xl px-4 py-20 text-center">
-        <div className="inline-flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-br from-green-400 to-emerald-500 shadow-lg mb-6">
-          <Crown className="h-10 w-10 text-white" />
-        </div>
-        <h1 className="text-3xl font-bold mb-3">Welcome to Pro!</h1>
-        <p className="text-muted-foreground mb-8 text-lg">Your account has been upgraded. Enjoy all Pro features.</p>
-        <div className="flex gap-3 justify-center">
-          <Link href="/profile"><Button className="gradient-primary hover:opacity-90">Go to Profile</Button></Link>
-          <Link href="/for-you"><Button variant="outline">View Recommendations</Button></Link>
-        </div>
-      </div>
-    );
-  }
+  const planLabel = billing === "annual" ? "Pro Yearly" : "Pro Monthly";
+  const contactBody = `Hi EDU Passport team,\n\nPlease activate ${planLabel} for my account.${userEmail ? `\n\nAccount email: ${userEmail}` : ""}`;
+  const contactHref = `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Activate ${planLabel}`)}&body=${encodeURIComponent(contactBody)}`;
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-16">
       {/* Header */}
       <div className="text-center mb-14">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 border border-primary/20">
-          <Sparkles className="h-4 w-4" /> Upgrade your learning journey
+          <Sparkles className="h-4 w-4" /> Upgrade your opportunity workspace
         </div>
         <h1 className="text-4xl sm:text-5xl font-bold mb-4 text-balance">
           Choose Your{" "}
@@ -77,7 +47,7 @@ function PricingContent() {
           </span>
         </h1>
         <p className="text-muted-foreground text-lg max-w-2xl mx-auto text-balance">
-          Get more from EDU Passport with Pro — unlimited saves, ad-free browsing, quick apply, and more.
+          Get more from EDU Passport with Pro — unlimited tracking, fit reasons, reminders, Quick Apply, and fewer distractions.
         </p>
       </div>
 
@@ -116,7 +86,7 @@ function PricingContent() {
             </div>
             <div>
               <h2 className="text-xl font-bold">Free</h2>
-              <p className="text-sm text-muted-foreground">For casual learners</p>
+              <p className="text-sm text-muted-foreground">For exploring opportunities</p>
             </div>
           </div>
 
@@ -163,18 +133,18 @@ function PricingContent() {
             </div>
             <div>
               <h2 className="text-xl font-bold">Pro</h2>
-              <p className="text-sm text-muted-foreground">For serious learners</p>
+              <p className="text-sm text-muted-foreground">For active applicants and planners</p>
             </div>
           </div>
 
           <div className="mb-8">
             <div className="flex items-baseline gap-1">
-              <span className="text-5xl font-bold">{billing === "annual" ? "$8" : "$12"}</span>
-              <span className="text-muted-foreground">/month</span>
+              <span className="text-5xl font-bold">{billing === "annual" ? "$79.99" : "$9.99"}</span>
+              <span className="text-muted-foreground">/{billing === "annual" ? "year" : "month"}</span>
             </div>
             {billing === "annual" && (
               <p className="text-sm text-muted-foreground mt-2">
-                Billed <span className="font-semibold text-foreground">$96/year</span>
+                About <span className="font-semibold text-foreground">$6.67/month</span> billed yearly
               </p>
             )}
           </div>
@@ -192,13 +162,11 @@ function PricingContent() {
               <Shield className="h-4 w-4 mr-2" /> Active Pro Member
             </Button>
           ) : (
-            <Button
-              className="w-full mb-8 h-11 rounded-xl gradient-primary hover:opacity-90 transition-opacity"
-              onClick={() => handleUpgrade(billing)}
-              disabled={loading}
-            >
-              {loading ? "Upgrading..." : "Upgrade to Pro"}
-            </Button>
+            <a href={contactHref} className="block mb-8">
+              <Button className="w-full h-11 rounded-xl gradient-primary hover:opacity-90 transition-opacity">
+                <Mail className="h-4 w-4 mr-2" /> Contact to Activate
+              </Button>
+            </a>
           )}
 
           <ul className="space-y-4">
@@ -217,7 +185,7 @@ function PricingContent() {
       {/* FAQ / note */}
       <div className="text-center mt-12">
         <p className="text-sm text-muted-foreground max-w-md mx-auto">
-          Cancel anytime. Pro subscription auto-renews. Payment processing powered by Stripe (coming soon — currently in demo mode).
+          Pro access is manually activated by the EDU Passport admin after payment confirmation.
         </p>
       </div>
     </div>

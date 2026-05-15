@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { getStripePlanAvailability, isStripeCheckoutConfigured, isStripeSecretConfigured } from "@/lib/stripe";
 
 export async function GET() {
   const session = await getServerSession(authOptions);
@@ -13,11 +14,11 @@ export async function GET() {
 
   const user = await prisma.appUser.findUnique({
     where: { id: userId },
-    select: { tier: true },
+    select: { tier: true, proExpiresAt: true, stripeCustomerId: true },
   });
 
   const subscription = await prisma.subscription.findFirst({
-    where: { userId, status: { in: ["active", "trialing", "past_due"] } },
+    where: { userId },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -29,8 +30,24 @@ export async function GET() {
     },
   });
 
+  const now = new Date();
+  const hasActiveStripeSubscription =
+    Boolean(subscription) &&
+    ["active", "trialing"].includes(subscription!.status) &&
+    subscription!.currentPeriodEnd > now;
+  const hasManualProAccess =
+    user?.tier === "pro" &&
+    (!user.proExpiresAt || user.proExpiresAt > now) &&
+    !hasActiveStripeSubscription;
+  const tier = hasActiveStripeSubscription || hasManualProAccess ? "pro" : "free";
+
   return NextResponse.json({
-    tier: user?.tier || "free",
+    tier,
+    proExpiresAt: user?.proExpiresAt || null,
     subscription: subscription || null,
+    portalAvailable: Boolean(user?.stripeCustomerId && isStripeSecretConfigured()),
+    checkoutAvailable: isStripeCheckoutConfigured(),
+    checkoutPlans: getStripePlanAvailability(),
+    source: hasActiveStripeSubscription ? "stripe" : hasManualProAccess ? "manual" : "free",
   });
 }

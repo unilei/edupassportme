@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
+import { AuthRequired, AuthRequiredPrompt } from "@/components/auth/AuthRequired";
 import { useFetch } from "@/hooks/useFetch";
 import { useSSE } from "@/hooks/useSSE";
 import { ChevronLeft, ChevronRight, User, Rss, Wifi, WifiOff } from "lucide-react";
@@ -39,12 +40,12 @@ interface StreamEvent {
   watchCount?: number;
 }
 
-export default function FeedPage() {
+function FeedContent() {
   const [page, setPage] = useState(1);
   const [scope, setScope] = useState<"following" | "me">("following");
   const [liveItems, setLiveItems] = useState<ActivityItem[]>([]);
 
-  const { data, loading } = useFetch<FeedResponse>(
+  const { data, loading, status } = useFetch<FeedResponse>(
     `/api/user/feed?page=${page}&scope=${scope}`,
   );
 
@@ -63,6 +64,16 @@ export default function FeedPage() {
     enabled: scope === "following" && page === 1,
     onMessage: handleSSE,
   });
+
+  if (status === 401) {
+    return (
+      <AuthRequiredPrompt
+        callbackUrl="/feed"
+        title="Sign in to view your activity feed"
+        description="Your feed is personalized from the people you follow and your own activity."
+      />
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 space-y-6">
@@ -192,5 +203,17 @@ export default function FeedPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function FeedPage() {
+  return (
+    <AuthRequired
+      callbackUrl="/feed"
+      title="Sign in to view your activity feed"
+      description="Your feed is personalized from the people you follow and your own activity."
+    >
+      <FeedContent />
+    </AuthRequired>
   );
 }

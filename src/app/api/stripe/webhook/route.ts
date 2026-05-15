@@ -77,9 +77,14 @@ async function handleCheckoutComplete(session: Stripe.Checkout.Session) {
       trialEnd: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
     },
     update: {
+      stripePriceId: item?.price.id || "",
       status: sub.status,
+      plan,
       currentPeriodStart: new Date(periodStart * 1000),
       currentPeriodEnd: new Date(periodEnd * 1000),
+      cancelAtPeriodEnd: sub.cancel_at_period_end,
+      canceledAt: sub.canceled_at ? new Date(sub.canceled_at * 1000) : null,
+      trialEnd: sub.trial_end ? new Date(sub.trial_end * 1000) : null,
     },
   });
 
@@ -108,6 +113,7 @@ async function handleSubscriptionUpdate(sub: Stripe.Subscription) {
   await prisma.subscription.update({
     where: { stripeSubscriptionId: sub.id },
     data: {
+      stripePriceId: item?.price.id || existing.stripePriceId,
       status: sub.status,
       currentPeriodStart: new Date(periodStart * 1000),
       currentPeriodEnd: new Date(periodEnd * 1000),

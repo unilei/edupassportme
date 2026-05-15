@@ -1,13 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useSession, SessionProvider } from "next-auth/react";
-import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { Sparkles, Loader2, Settings } from "lucide-react";
 import { ListingCard } from "@/components/listing/ListingCard";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { Button } from "@/components/ui/button";
+import { AuthRequired, AuthRequiredPrompt } from "@/components/auth/AuthRequired";
 
 interface ListingData {
   id: string;
@@ -27,18 +27,28 @@ interface ListingData {
   provider: { name: string; slug: string; logo?: string | null };
   category?: { name: string; slug: string } | null;
   tags?: { tag: { name: string; slug: string } }[];
+  fitScore?: number;
+  fitReasons?: string[];
 }
 
 function ForYouContent() {
   const { status } = useSession();
-  const router = useRouter();
   const [listings, setListings] = useState<ListingData[]>([]);
   const [loading, setLoading] = useState(true);
+  const [authExpired, setAuthExpired] = useState(false);
 
   const fetchRecs = useCallback(() => {
     fetch("/api/user/recommendations")
-      .then((r) => r.json())
-      .then((data: { listings: ListingData[] }) => {
+      .then((r) => {
+        if (r.status === 401) {
+          setAuthExpired(true);
+          setLoading(false);
+          return null;
+        }
+        return r.json();
+      })
+      .then((data: { listings: ListingData[] } | null) => {
+        if (!data) return;
         setListings(data.listings || []);
         setLoading(false);
       })
@@ -47,14 +57,23 @@ function ForYouContent() {
 
   useEffect(() => {
     if (status === "authenticated") fetchRecs();
-    else if (status === "unauthenticated") router.push("/auth/signin?callbackUrl=/for-you");
-  }, [status, fetchRecs, router]);
+  }, [status, fetchRecs]);
 
   if (status === "loading" || loading) {
     return (
       <div className="flex items-center justify-center py-24">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
+    );
+  }
+
+  if (authExpired) {
+    return (
+      <AuthRequiredPrompt
+        callbackUrl="/for-you"
+        title="Sign in to see your recommendations"
+        description="Your recommendations are personalized from your profile and saved activity."
+      />
     );
   }
 
@@ -68,7 +87,7 @@ function ForYouContent() {
             <h1 className="text-3xl font-bold">Recommended For You</h1>
           </div>
           <p className="text-muted-foreground">
-            Personalized picks based on your interests and activity
+            Personalized picks based on your goals, interests, saved activity, and preferred opportunity types
           </p>
         </div>
         <Link href="/profile">
@@ -97,7 +116,21 @@ function ForYouContent() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {listings.map((listing) => (
-            <ListingCard key={listing.id} listing={listing} />
+            <div key={listing.id} className="space-y-2">
+              <ListingCard listing={listing} />
+              {(listing.fitReasons?.length || listing.fitScore) && (
+                <div className="flex flex-wrap gap-1.5 text-[11px]">
+                  {listing.fitScore !== undefined && (
+                    <span className="rounded-full bg-primary/10 px-2 py-1 font-semibold text-primary">
+                      {listing.fitScore}% fit
+                    </span>
+                  )}
+                  {listing.fitReasons?.slice(0, 2).map((reason) => (
+                    <span key={reason} className="rounded-full border px-2 py-1 text-muted-foreground">{reason}</span>
+                  ))}
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}
@@ -107,8 +140,12 @@ function ForYouContent() {
 
 export default function ForYouPage() {
   return (
-    <SessionProvider>
+    <AuthRequired
+      callbackUrl="/for-you"
+      title="Sign in to see your recommendations"
+      description="Your recommendations are personalized from your profile and saved activity."
+    >
       <ForYouContent />
-    </SessionProvider>
+    </AuthRequired>
   );
 }

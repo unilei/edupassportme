@@ -2,7 +2,22 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getStripe, STRIPE_PLANS } from "@/lib/stripe";
+import { isProUser } from "@/lib/pro";
+import {
+  getStripe,
+  getStripePlan,
+  getStripePlanAvailability,
+  isStripeCheckoutConfigured,
+  isStripeSecretConfigured,
+  type StripePlanKey,
+} from "@/lib/stripe";
+
+export async function GET() {
+  return NextResponse.json({
+    checkoutAvailable: isStripeCheckoutConfigured(),
+    plans: getStripePlanAvailability(),
+  });
+}
 
 export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
@@ -13,15 +28,25 @@ export async function POST(req: NextRequest) {
   }
 
   const body = await req.json();
-  const { plan } = body as { plan?: "pro_monthly" | "pro_yearly" };
+  const { plan } = body as { plan?: StripePlanKey };
+  const selectedPlan = getStripePlan(plan);
 
-  if (!plan || !STRIPE_PLANS[plan]) {
+  if (!selectedPlan || !plan) {
     return NextResponse.json({ error: "Invalid plan" }, { status: 400 });
   }
 
-  const selectedPlan = STRIPE_PLANS[plan];
   if (!selectedPlan.priceId) {
-    return NextResponse.json({ error: "Stripe price not configured" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Stripe Checkout is not available because this plan is not configured.", code: "stripe_price_not_configured" },
+      { status: 503 },
+    );
+  }
+
+  if (!isStripeSecretConfigured()) {
+    return NextResponse.json(
+      { error: "Stripe Checkout is not available because Stripe is not configured.", code: "stripe_not_configured" },
+      { status: 503 },
+    );
   }
 
   const user = await prisma.appUser.findUnique({
@@ -33,7 +58,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "User not found" }, { status: 404 });
   }
 
-  if (user.tier === "pro") {
+  if (await isProUser(userId)) {
     return NextResponse.json({ error: "Already a Pro member" }, { status: 400 });
   }
 

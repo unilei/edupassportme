@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import { getStripe } from "@/lib/stripe";
+import { getStripe, isStripeSecretConfigured } from "@/lib/stripe";
 
 export async function POST() {
   const session = await getServerSession(authOptions);
@@ -19,6 +19,13 @@ export async function POST() {
 
   if (!user?.stripeCustomerId) {
     return NextResponse.json({ error: "No billing account found" }, { status: 404 });
+  }
+
+  if (!isStripeSecretConfigured()) {
+    return NextResponse.json(
+      { error: "Stripe billing portal is not available because Stripe is not configured.", code: "stripe_not_configured" },
+      { status: 503 },
+    );
   }
 
   const stripe = getStripe();

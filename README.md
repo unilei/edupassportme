@@ -1,18 +1,18 @@
 # EDU Passport
 
-**Education meta-search aggregator** — like Skyscanner for courses, jobs, events, and deals.
+**Student opportunity workspace** — discover courses, jobs, events, and student deals, then track every next action from saved to completed.
 
 ## Tech Stack
 
 - **Framework:** Next.js 16 (App Router, ISR, Server Components)
 - **Database:** PostgreSQL + Prisma 7 ORM
 - **Auth:** NextAuth.js (admin + user credential providers)
-- **Payments:** Stripe (subscriptions, checkout, customer portal)
+- **Payments:** Manual Pro activation in Admin; Stripe integration is optional for a future automated checkout flow
 - **AI:** OpenAI (summaries, search intent, learning paths, chat)
 - **Styling:** TailwindCSS + shadcn/ui
 - **i18n:** Client + Server-side with English / Chinese (cookie + Accept-Language detection)
 - **Email:** Nodemailer (SMTP or dev JSON transport)
-- **Testing:** Vitest + React Testing Library (140 tests)
+- **Testing:** Vitest + React Testing Library + Playwright (200+ tests)
 - **Bundle:** @next/bundle-analyzer, dynamic imports, optimizePackageImports
 
 ## Getting Started
@@ -52,14 +52,14 @@ SEED_DB=1 npm run dev:local
 | `AWIN_ACCESS_TOKEN` | No | Optional legacy Awin publisher API token for promotions/deals sync |
 | `AWIN_PUBLISHER_ID` | No | Optional legacy Awin publisher account ID |
 | `ADZUNA_APP_ID` / `ADZUNA_APP_KEY` | No | Reserved for Adzuna jobs provider in the next source expansion |
-| `SMTP_HOST` | No | SMTP host for emails (dev: console output) |
-| `SMTP_PORT` | No | SMTP port (default: 587) |
-| `SMTP_USER` / `SMTP_PASS` | No | SMTP credentials |
+| `SMTP_HOST` | No | SMTP host for emails. Recommended production provider: Resend (`smtp.resend.com`) |
+| `SMTP_PORT` | No | SMTP port. Use `465` with Resend |
+| `SMTP_USER` / `SMTP_PASS` | No | SMTP credentials. Use `resend` and a Resend API key for Resend |
 | `SMTP_FROM` | No | From address for emails |
-| `STRIPE_SECRET_KEY` | No | Stripe secret key |
-| `STRIPE_WEBHOOK_SECRET` | No | Stripe webhook signing secret |
-| `STRIPE_PRO_MONTHLY_PRICE_ID` | No | Stripe Price ID for monthly plan |
-| `STRIPE_PRO_YEARLY_PRICE_ID` | No | Stripe Price ID for yearly plan |
+| `STRIPE_SECRET_KEY` | No | Optional future Stripe secret key. Leave blank while using manual Pro activation |
+| `STRIPE_WEBHOOK_SECRET` | No | Optional future Stripe webhook signing secret |
+| `STRIPE_PRO_MONTHLY_PRICE_ID` | No | Optional future Stripe Price ID for monthly plan |
+| `STRIPE_PRO_YEARLY_PRICE_ID` | No | Optional future Stripe Price ID for yearly plan |
 
 Course and deal sync also includes no-account public providers: Microsoft Learn,
 MIT OpenCourseWare, GitHub Student Developer Pack, and Slickdeals Education.
@@ -145,6 +145,7 @@ src/
 │   ├── courses/jobs/events/deals/  # Vertical listing pages
 │   ├── feed/               # Activity feed page
 │   ├── learning/           # Learning progress tracker
+│   ├── workspace/          # Student opportunity workspace
 │   └── user/[id]/          # Public user profiles
 ├── components/
 │   ├── ai/                 # Chat assistant, AI summary button
@@ -174,9 +175,10 @@ src/
 ## Key Features
 
 - **4 verticals:** Courses, Jobs, Events, Deals
+- **Opportunity Workspace:** saved opportunities with status, priority, deadline, next-action reminders, and notes
 - **Full-text search** with PostgreSQL tsvector + autocomplete
 - **User accounts** with email verification, password reset
-- **Pro tier** with Stripe subscriptions (monthly/yearly)
+- **Pro tier** with admin-controlled manual activation for unlimited opportunity tracking, Quick Apply, and priority workspace features; Stripe subscription plumbing is kept optional for later
 - **AI features:** listing summaries, smart search, learning paths, chat assistant
 - **Reviews** with nested replies, upvote/downvote, reporting
 - **Social:** follow system, activity feed, user profiles
@@ -185,23 +187,23 @@ src/
 - **i18n** (English / Chinese) with server-side detection, URL prefixes, hreflang SEO
 - **Localization:** locale-aware price/date/number formatting
 - **PWA** with service worker, offline support, install prompt
-- **Email notifications** for new matches, price drops
+- **Email and in-app notifications** for new matches, price drops, and workspace reminders
 - **SEO** with JSON-LD structured data, sitemap, ISR, hreflang
 - **Performance:** bundle analysis, dynamic imports, ISR caching, Web Vitals monitoring
 - **Security:** rate limiting, security headers, input sanitization, CSRF protection
-- **140 tests** covering API routes, utilities, hooks, and i18n
+- **200+ tests** covering API routes, utilities, hooks, components, and i18n
 
 ## Production Checklist
 
 - [ ] Set all required environment variables
 - [ ] Run `npx prisma migrate deploy` against production DB
-- [ ] Configure Stripe webhook endpoint → `https://yourdomain.com/api/stripe/webhook`
-- [ ] Set up SMTP for transactional emails
+- [ ] Create a Resend account, verify `edupassport.me`, and set SMTP env vars
+- [ ] Use Admin → Users to grant/revoke Pro manually after payment confirmation
 - [ ] Configure cron jobs for `/api/cron/sync` and `/api/cron/notify`
 - [ ] Enable HTTPS (Strict-Transport-Security header is pre-configured)
 - [ ] Review rate limit settings in `src/lib/rate-limit.ts` (swap to Redis for multi-instance)
 - [ ] Set `NEXT_PUBLIC_SITE_URL` to production domain
-- [ ] Test Stripe checkout flow end-to-end
+- [ ] Test email verification and password reset delivery end-to-end
 - [ ] Verify OpenAI API key has sufficient quota
 - [ ] Run `npm run build:analyze` and review bundle sizes
 - [ ] Check Web Vitals baseline with Lighthouse

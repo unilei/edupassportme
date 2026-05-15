@@ -7,22 +7,34 @@ export async function POST(request: NextRequest) {
     const { token, password } = (await request.json()) as { token?: string; password?: string };
 
     if (!token || !password) {
-      return NextResponse.json({ error: "Token and new password are required" }, { status: 400 });
+      return NextResponse.json({
+        error: "Token and new password are required",
+        code: "TOKEN_AND_PASSWORD_REQUIRED",
+      }, { status: 400 });
     }
 
     if (password.length < 6) {
-      return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
+      return NextResponse.json({
+        error: "Password must be at least 6 characters",
+        code: "PASSWORD_TOO_SHORT",
+      }, { status: 400 });
     }
 
     const record = await prisma.passwordResetToken.findUnique({ where: { token } });
 
     if (!record || record.usedAt) {
-      return NextResponse.json({ error: "Invalid or already used token" }, { status: 400 });
+      return NextResponse.json({
+        error: "Invalid or already used token",
+        code: "INVALID_OR_USED_TOKEN",
+      }, { status: 400 });
     }
 
     if (record.expiresAt < new Date()) {
       await prisma.passwordResetToken.delete({ where: { id: record.id } });
-      return NextResponse.json({ error: "Token has expired. Please request a new reset link." }, { status: 400 });
+      return NextResponse.json({
+        error: "Token has expired. Please request a new reset link.",
+        code: "TOKEN_EXPIRED",
+      }, { status: 400 });
     }
 
     const passwordHash = await hash(password, 12);

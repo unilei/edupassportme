@@ -3,10 +3,30 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 
+const VALID_PREFERRED_TYPES = new Set(["course", "job", "event", "deal"]);
+
 async function getUserId(): Promise<string | null> {
   const session = await getServerSession(authOptions);
   const id = (session?.user as Record<string, unknown> | undefined)?.id as string | undefined;
   return id && id !== "admin" ? id : null;
+}
+
+function normalizeStringList(value: unknown, limit = 12): string[] | undefined {
+  if (value === undefined) return undefined;
+  if (!Array.isArray(value)) return [];
+
+  const normalized = value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean)
+    .map((item) => item.slice(0, 80));
+
+  return [...new Set(normalized)].slice(0, limit);
+}
+
+function normalizePreferredTypes(value: unknown): string[] | undefined {
+  const normalized = normalizeStringList(value, 4);
+  return normalized?.filter((type) => VALID_PREFERRED_TYPES.has(type));
 }
 
 // GET — get current user profile
@@ -36,15 +56,36 @@ export async function PUT(request: NextRequest) {
   if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json();
-  const { name, educationLevel, interests, preferredLang, notifyNewMatch, notifyPriceDrop, notifyNewsletter } = body as {
+  const {
+    name,
+    educationLevel,
+    interests,
+    goals,
+    targetRegions,
+    preferredTypes,
+    preferredLang,
+    notifyNewMatch,
+    notifyPriceDrop,
+    notifyNewsletter,
+    completeOnboarding,
+  } = body as {
     name?: string;
     educationLevel?: string;
     interests?: string[];
+    goals?: string[];
+    targetRegions?: string[];
+    preferredTypes?: string[];
     preferredLang?: string;
     notifyNewMatch?: boolean;
     notifyPriceDrop?: boolean;
     notifyNewsletter?: boolean;
+    completeOnboarding?: boolean;
   };
+  const normalizedInterests = normalizeStringList(interests, 18);
+  const normalizedGoals = normalizeStringList(goals, 8);
+  const normalizedTargetRegions = normalizeStringList(targetRegions, 8);
+  const normalizedPreferredTypes = normalizePreferredTypes(preferredTypes);
+  const onboardingCompletedAt = completeOnboarding ? new Date() : undefined;
 
   // Update user name
   if (name !== undefined) {
@@ -56,7 +97,11 @@ export async function PUT(request: NextRequest) {
     where: { userId },
     update: {
       ...(educationLevel !== undefined && { educationLevel }),
-      ...(interests !== undefined && { interests }),
+      ...(normalizedInterests !== undefined && { interests: normalizedInterests }),
+      ...(normalizedGoals !== undefined && { goals: normalizedGoals }),
+      ...(normalizedTargetRegions !== undefined && { targetRegions: normalizedTargetRegions }),
+      ...(normalizedPreferredTypes !== undefined && { preferredTypes: normalizedPreferredTypes }),
+      ...(onboardingCompletedAt !== undefined && { onboardingCompletedAt }),
       ...(preferredLang !== undefined && { preferredLang }),
       ...(notifyNewMatch !== undefined && { notifyNewMatch }),
       ...(notifyPriceDrop !== undefined && { notifyPriceDrop }),
@@ -65,7 +110,11 @@ export async function PUT(request: NextRequest) {
     create: {
       userId,
       educationLevel: educationLevel || null,
-      interests: interests || [],
+      interests: normalizedInterests || [],
+      goals: normalizedGoals || [],
+      targetRegions: normalizedTargetRegions || [],
+      preferredTypes: normalizedPreferredTypes || [],
+      ...(onboardingCompletedAt !== undefined && { onboardingCompletedAt }),
       preferredLang: preferredLang || "en",
     },
   });

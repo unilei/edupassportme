@@ -1,15 +1,13 @@
 import { NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireAdmin } from "@/lib/admin";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 
-async function requireAuth() {
-  const session = await getServerSession(authOptions);
-  if (!session) throw new Error("Unauthorized");
-}
-
 export async function GET() {
+  if (!(await requireAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const tags = await prisma.tag.findMany({
     orderBy: { name: "asc" },
     include: { _count: { select: { items: true } } },
@@ -18,7 +16,10 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  await requireAuth();
+  if (!(await requireAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const data = await request.json();
 
   const tag = await prisma.tag.create({
@@ -30,7 +31,10 @@ export async function POST(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  await requireAuth();
+  if (!(await requireAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const data = await request.json();
 
   const tag = await prisma.tag.update({
@@ -44,7 +48,10 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  await requireAuth();
+  if (!(await requireAdmin())) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
 

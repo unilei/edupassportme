@@ -52,6 +52,20 @@ AWIN_ACCESS_TOKEN (optional legacy deals source)
 AWIN_PUBLISHER_ID (optional legacy deals source)
 ```
 
+Recommended SMTP provider for the current launch path is Resend:
+
+```text
+SMTP_HOST=smtp.resend.com
+SMTP_PORT=465
+SMTP_SECURE=true
+SMTP_USER=resend
+SMTP_PASS=<Resend API key>
+SMTP_FROM=noreply@edupassport.me
+```
+
+Stripe variables can remain blank while Pro access is activated manually from
+Admin > Users after payment confirmation.
+
 For this server, the checked local defaults are:
 
 ```text

@@ -3,11 +3,25 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { activeListingWhere } from "@/lib/listing-visibility";
+import { isProUser } from "@/lib/pro";
+
+const FREE_TRACKING_LIMIT = 20;
+const VALID_STATUSES = new Set(["saved", "researching", "applying", "applied", "completed", "dismissed"]);
+const VALID_PRIORITIES = new Set(["low", "medium", "high"]);
 
 async function getUserId(): Promise<string | null> {
   const session = await getServerSession(authOptions);
   const id = (session?.user as Record<string, unknown> | undefined)?.id as string | undefined;
   return id && id !== "admin" ? id : null;
+}
+
+function parseOptionalDate(value: unknown): Date | null | undefined {
+  if (value === undefined) return undefined;
+  if (value === null || value === "") return null;
+  if (typeof value !== "string") return undefined;
+
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? undefined : date;
 }
 
 // GET — list saved listings for current user
@@ -62,6 +76,93 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Listing not found" }, { status: 404 });
   }
 
+  const [isPro, savedCount] = await Promise.all([
+    isProUser(userId),
+    prisma.savedListing.count({ where: { userId } }),
+  ]);
+  if (!isPro && savedCount >= FREE_TRACKING_LIMIT) {
+    return NextResponse.json(
+      {
+        error: "Free accounts can track up to 20 opportunities. Upgrade to Pro for unlimited tracking.",
+        code: "SAVE_LIMIT_REACHED",
+      },
+      { status: 403 },
+    );
+  }
+
   await prisma.savedListing.create({ data: { userId, listingId } });
   return NextResponse.json({ saved: true });
+}
+
+// PATCH — update workspace tracking metadata for a saved opportunity
+export async function PATCH(request: NextRequest) {
+  const userId = await getUserId();
+  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const body = await request.json();
+  const {
+    savedId,
+    listingId,
+    status,
+    priority,
+    deadlineAt,
+    nextActionAt,
+    note,
+  } = body as {
+    savedId?: string;
+    listingId?: string;
+    status?: string;
+    priority?: string;
+    deadlineAt?: string | null;
+    nextActionAt?: string | null;
+    note?: string | null;
+  };
+
+  if (!savedId && !listingId) {
+    return NextResponse.json({ error: "savedId or listingId required" }, { status: 400 });
+  }
+  if (status !== undefined && !VALID_STATUSES.has(status)) {
+    return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+  }
+  if (priority !== undefined && !VALID_PRIORITIES.has(priority)) {
+    return NextResponse.json({ error: "Invalid priority" }, { status: 400 });
+  }
+
+  const parsedDeadlineAt = parseOptionalDate(deadlineAt);
+  const parsedNextActionAt = parseOptionalDate(nextActionAt);
+  if (deadlineAt !== undefined && parsedDeadlineAt === undefined) {
+    return NextResponse.json({ error: "Invalid deadlineAt" }, { status: 400 });
+  }
+  if (nextActionAt !== undefined && parsedNextActionAt === undefined) {
+    return NextResponse.json({ error: "Invalid nextActionAt" }, { status: 400 });
+  }
+
+  const where = savedId ? { id: savedId, userId } : { listingId: listingId!, userId };
+  const data = {
+    ...(status !== undefined && { status }),
+    ...(priority !== undefined && { priority }),
+    ...(deadlineAt !== undefined && { deadlineAt: parsedDeadlineAt }),
+    ...(nextActionAt !== undefined && { nextActionAt: parsedNextActionAt }),
+    ...(note !== undefined && { note: note?.trim() || null }),
+  };
+
+  const updated = await prisma.savedListing.updateMany({ where, data });
+  if (updated.count === 0) {
+    return NextResponse.json({ error: "Saved opportunity not found" }, { status: 404 });
+  }
+
+  const saved = await prisma.savedListing.findFirst({
+    where,
+    include: {
+      listing: {
+        include: {
+          provider: { select: { name: true, slug: true, logo: true } },
+          category: { select: { name: true, slug: true } },
+          tags: { include: { tag: { select: { name: true, slug: true } } } },
+        },
+      },
+    },
+  });
+
+  return NextResponse.json({ saved });
 }

@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const results = { searchAlerts: 0, priceAlerts: 0, errors: 0 };
+  const results = { searchAlerts: 0, priceAlerts: 0, workspaceReminders: 0, errors: 0 };
 
   try {
     // -----------------------------------------------------------------------
@@ -180,6 +180,79 @@ export async function GET(request: NextRequest) {
         results.priceAlerts++;
       } catch (err) {
         console.error(`[Notify] Error processing price drop for listing ${saved.listing.id}:`, err);
+        results.errors++;
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // 3. Workspace reminders — saved opportunities with due next actions/deadlines
+    // -----------------------------------------------------------------------
+    const now = new Date();
+    const reminderWindowEnd = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+    const reminderLookback = new Date(now.getTime() - 20 * 60 * 60 * 1000);
+    const trackedOpportunities = await prisma.savedListing.findMany({
+      where: {
+        status: { in: ["saved", "researching", "applying", "applied"] },
+        listing: activeListingWhere(now),
+        OR: [
+          { nextActionAt: { gte: now, lte: reminderWindowEnd } },
+          { deadlineAt: { gte: now, lte: reminderWindowEnd } },
+        ],
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            profile: { select: { notifyNewMatch: true } },
+          },
+        },
+        listing: {
+          select: {
+            title: true,
+            slug: true,
+          },
+        },
+      },
+    });
+
+    for (const saved of trackedOpportunities) {
+      if (!saved.user.profile?.notifyNewMatch) continue;
+
+      const link = `/workspace?item=${saved.id}`;
+      const existing = await prisma.notification.findFirst({
+        where: {
+          userId: saved.user.id,
+          type: "opportunity_reminder",
+          link,
+          createdAt: { gt: reminderLookback },
+        },
+      });
+      if (existing) continue;
+
+      const isNextActionDue = Boolean(saved.nextActionAt && saved.nextActionAt <= reminderWindowEnd);
+      const title = isNextActionDue
+        ? `Next action due for ${saved.listing.title}`
+        : `Deadline coming up for ${saved.listing.title}`;
+      const dueAt = isNextActionDue ? saved.nextActionAt : saved.deadlineAt;
+      const body = dueAt
+        ? `${saved.listing.title} needs attention by ${dueAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}.`
+        : `${saved.listing.title} needs attention soon.`;
+
+      try {
+        await prisma.notification.create({
+          data: {
+            userId: saved.user.id,
+            type: "opportunity_reminder",
+            title,
+            body,
+            link,
+            emailSent: false,
+          },
+        });
+        results.workspaceReminders++;
+      } catch (err) {
+        console.error(`[Notify] Error creating workspace reminder for saved listing ${saved.id}:`, err);
         results.errors++;
       }
     }

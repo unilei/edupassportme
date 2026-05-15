@@ -2,15 +2,15 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, BookOpen, Briefcase, User } from "lucide-react";
+import { Home, Search, Sparkles, Heart, User } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useI18n } from "@/lib/i18n/context";
 
 const navItems = [
   { href: "/", icon: Home, key: "home" },
   { href: "/search", icon: Search, key: "search" },
-  { href: "/courses", icon: BookOpen, key: "nav.courses" },
-  { href: "/jobs", icon: Briefcase, key: "nav.jobs" },
+  { href: "/for-you", icon: Sparkles, key: "nav.forYou" },
+  { href: "/saved", icon: Heart, key: "nav.saved" },
   { href: "/profile", icon: User, key: "nav.profile" },
 ] as const;
 

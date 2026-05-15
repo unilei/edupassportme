@@ -27,6 +27,7 @@ interface UserItem {
   name: string | null;
   role: string;
   tier: string;
+  proExpiresAt: string | null;
   banned: boolean;
   bannedAt: string | null;
   bannedReason: string | null;
@@ -60,7 +61,19 @@ export default function AdminUsersPage() {
   const [roleTarget, setRoleTarget] = useState<UserItem | null>(null);
   const [newRole, setNewRole] = useState("");
 
+  // Manual Pro dialog
+  const [proDialog, setProDialog] = useState(false);
+  const [proTarget, setProTarget] = useState<UserItem | null>(null);
+  const [proExpiresAt, setProExpiresAt] = useState("");
+
+  const [actionError, setActionError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
+
+  const defaultProExpiry = () => {
+    const date = new Date();
+    date.setFullYear(date.getFullYear() + 1);
+    return date.toISOString().slice(0, 10);
+  };
 
   useEffect(() => {
     const params = new URLSearchParams({ page: String(page), limit: "20" });
@@ -78,35 +91,65 @@ export default function AdminUsersPage() {
 
   const reload = () => setRefreshKey((k) => k + 1);
 
-  const handleBan = async () => {
-    if (!banTarget) return;
-    await fetch("/api/admin/users", {
+  const patchUser = async (payload: Record<string, unknown>) => {
+    setActionError("");
+    const res = await fetch("/api/admin/users", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: banTarget.id, action: "ban", reason: banReason }),
+      body: JSON.stringify(payload),
     });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({})) as { error?: string };
+      setActionError(data.error || "User update failed.");
+      return false;
+    }
+    return true;
+  };
+
+  const handleBan = async () => {
+    if (!banTarget) return;
+    const ok = await patchUser({ id: banTarget.id, action: "ban", reason: banReason });
+    if (!ok) return;
     setBanDialog(false);
     setBanReason("");
     reload();
   };
 
   const handleUnban = async (id: string) => {
-    await fetch("/api/admin/users", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, action: "unban" }),
-    });
+    const ok = await patchUser({ id, action: "unban" });
+    if (!ok) return;
     reload();
   };
 
   const handleRoleChange = async () => {
     if (!roleTarget || !newRole) return;
-    await fetch("/api/admin/users", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: roleTarget.id, action: "role", role: newRole }),
-    });
+    const ok = await patchUser({ id: roleTarget.id, action: "role", role: newRole });
+    if (!ok) return;
     setRoleDialog(false);
+    reload();
+  };
+
+  const openProDialog = (user: UserItem) => {
+    setProTarget(user);
+    setProExpiresAt(user.proExpiresAt ? user.proExpiresAt.slice(0, 10) : defaultProExpiry());
+    setProDialog(true);
+  };
+
+  const handleGrantPro = async () => {
+    if (!proTarget || !proExpiresAt) return;
+    const ok = await patchUser({
+      id: proTarget.id,
+      action: "grant_pro",
+      proExpiresAt: new Date(`${proExpiresAt}T23:59:59.999Z`).toISOString(),
+    });
+    if (!ok) return;
+    setProDialog(false);
+    reload();
+  };
+
+  const handleRevokePro = async (id: string) => {
+    const ok = await patchUser({ id, action: "revoke_pro" });
+    if (!ok) return;
     reload();
   };
 
@@ -121,6 +164,25 @@ export default function AdminUsersPage() {
         {role === "admin" ? <Shield className="h-3 w-3" /> : role === "pro" ? <Crown className="h-3 w-3" /> : <User className="h-3 w-3" />}
         {role}
       </span>
+    );
+  };
+
+  const planBadge = (user: UserItem) => {
+    if (user.tier !== "pro") {
+      return <span className="text-xs text-muted-foreground">Free</span>;
+    }
+
+    return (
+      <div className="space-y-1">
+        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+          <Crown className="h-3 w-3" /> Pro
+        </span>
+        {user.proExpiresAt && (
+          <div className="text-[11px] text-muted-foreground">
+            until {new Date(user.proExpiresAt).toLocaleDateString()}
+          </div>
+        )}
+      </div>
     );
   };
 
@@ -172,6 +234,12 @@ export default function AdminUsersPage() {
         </select>
       </div>
 
+      {actionError && (
+        <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/20 dark:text-red-300">
+          {actionError}
+        </div>
+      )}
+
       {/* Table */}
       <div className="rounded-xl border overflow-x-auto">
         <table className="w-full text-sm">
@@ -179,6 +247,7 @@ export default function AdminUsersPage() {
             <tr className="border-b bg-muted/50">
               <th className="text-left p-3 font-medium">User</th>
               <th className="text-left p-3 font-medium">Role</th>
+              <th className="text-left p-3 font-medium">Plan</th>
               <th className="text-left p-3 font-medium">Status</th>
               <th className="text-left p-3 font-medium">Stats</th>
               <th className="text-left p-3 font-medium">Joined</th>
@@ -187,9 +256,9 @@ export default function AdminUsersPage() {
           </thead>
           <tbody>
             {loading ? (
-              <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">Loading...</td></tr>
+              <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">Loading...</td></tr>
             ) : data?.users.length === 0 ? (
-              <tr><td colSpan={6} className="p-8 text-center text-muted-foreground">No users found</td></tr>
+              <tr><td colSpan={7} className="p-8 text-center text-muted-foreground">No users found</td></tr>
             ) : (
               data?.users.map((u) => (
                 <tr key={u.id} className="border-b last:border-0 hover:bg-muted/30">
@@ -198,6 +267,7 @@ export default function AdminUsersPage() {
                     <div className="text-xs text-muted-foreground">{u.email}</div>
                   </td>
                   <td className="p-3">{roleBadge(u.role)}</td>
+                  <td className="p-3">{planBadge(u)}</td>
                   <td className="p-3">
                     {u.banned ? (
                       <span className="inline-flex items-center gap-1 text-xs font-medium text-red-600">
@@ -230,6 +300,25 @@ export default function AdminUsersPage() {
                       >
                         Role
                       </Button>
+                      {u.tier === "pro" ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs text-amber-700"
+                          onClick={() => handleRevokePro(u.id)}
+                        >
+                          Revoke Pro
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs text-amber-700"
+                          onClick={() => openProDialog(u)}
+                        >
+                          Grant Pro
+                        </Button>
+                      )}
                       {u.banned ? (
                         <Button
                           variant="ghost"
@@ -320,6 +409,30 @@ export default function AdminUsersPage() {
           <div className="flex justify-end gap-2 mt-2">
             <Button variant="outline" onClick={() => setRoleDialog(false)}>Cancel</Button>
             <Button onClick={handleRoleChange}>Save</Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Manual Pro Dialog */}
+      <Dialog open={proDialog} onOpenChange={setProDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Grant Pro Access</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Manually activating Pro for <strong>{proTarget?.email}</strong>.
+          </p>
+          <div>
+            <label className="text-sm font-medium">Expires on</label>
+            <Input
+              type="date"
+              value={proExpiresAt}
+              onChange={(e) => setProExpiresAt(e.target.value)}
+            />
+          </div>
+          <div className="flex justify-end gap-2 mt-2">
+            <Button variant="outline" onClick={() => setProDialog(false)}>Cancel</Button>
+            <Button onClick={handleGrantPro}>Grant Pro</Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -4,21 +4,22 @@ interface State<T> {
   data: T | null;
   loading: boolean;
   error: string | null;
+  status: number | null;
 }
 
 type Action<T> =
   | { type: "fetch" }
   | { type: "success"; data: T }
-  | { type: "error"; error: string };
+  | { type: "error"; error: string; status?: number };
 
 function reducer<T>(state: State<T>, action: Action<T>): State<T> {
   switch (action.type) {
     case "fetch":
-      return { ...state, loading: true, error: null };
+      return { ...state, loading: true, error: null, status: null };
     case "success":
-      return { data: action.data, loading: false, error: null };
+      return { data: action.data, loading: false, error: null, status: 200 };
     case "error":
-      return { ...state, loading: false, error: action.error };
+      return { ...state, loading: false, error: action.error, status: action.status ?? null };
   }
 }
 
@@ -26,6 +27,7 @@ interface UseFetchResult<T> {
   data: T | null;
   loading: boolean;
   error: string | null;
+  status: number | null;
   reload: () => void;
 }
 
@@ -34,6 +36,7 @@ export function useFetch<T>(url: string | null): UseFetchResult<T> {
     data: null,
     loading: !!url,
     error: null,
+    status: null,
   });
   const [key, setKey] = useReducer((k: number) => k + 1, 0);
 
@@ -46,14 +49,18 @@ export function useFetch<T>(url: string | null): UseFetchResult<T> {
 
     fetch(url)
       .then((r) => {
-        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        if (!r.ok) {
+          const error = new Error(`HTTP ${r.status}`) as Error & { status?: number };
+          error.status = r.status;
+          throw error;
+        }
         return r.json();
       })
       .then((d: T) => {
         if (!cancelled) dispatch({ type: "success", data: d });
       })
-      .catch((e: Error) => {
-        if (!cancelled) dispatch({ type: "error", error: e.message });
+      .catch((e: Error & { status?: number }) => {
+        if (!cancelled) dispatch({ type: "error", error: e.message, status: e.status });
       });
 
     return () => {
@@ -61,5 +68,11 @@ export function useFetch<T>(url: string | null): UseFetchResult<T> {
     };
   }, [url, key]);
 
-  return { data: state.data, loading: state.loading, error: state.error, reload };
+  return {
+    data: state.data,
+    loading: state.loading,
+    error: state.error,
+    status: state.status,
+    reload,
+  };
 }

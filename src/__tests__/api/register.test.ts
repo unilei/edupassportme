@@ -99,6 +99,7 @@ describe("POST /api/auth/register", () => {
 
     expect(res.status).toBe(201);
     expect(body.user.email).toBe("new@test.com");
+    expect(body.requiresVerification).toBe(true);
     expect(body.message).toContain("Verification email sent");
   });
 });

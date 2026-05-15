@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSession, signOut, SessionProvider } from "next-auth/react";
-import { Menu, X, Heart, Sparkles, User, LogOut, Crown, FileText, ChevronDown } from "lucide-react";
+import { Menu, X, Heart, Sparkles, User, LogOut, Crown, FileText, ChevronDown, Target } from "lucide-react";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { LocaleSwitcher } from "@/components/shared/LocaleSwitcher";
@@ -79,6 +79,13 @@ function UserMenu() {
             <p className="text-xs text-muted-foreground truncate">{session.user?.email}</p>
           </div>
 
+          <Link
+            href="/workspace"
+            className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent transition-colors mx-1 rounded-lg"
+            onClick={() => setOpen(false)}
+          >
+            <Target className="h-4 w-4 text-primary" /> {t("nav.workspace")}
+          </Link>
           <Link
             href="/for-you"
             className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent transition-colors mx-1 rounded-lg"

@@ -286,6 +286,10 @@ model UserProfile {
   user           AppUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
   educationLevel String?
   interests      String[]
+  goals          String[] @default([])
+  targetRegions  String[] @default([])
+  preferredTypes String[] @default([])
+  onboardingCompletedAt DateTime?
   preferredLang    String   @default("en")
   notifyNewMatch   Boolean  @default(true)
   notifyPriceDrop  Boolean  @default(true)
@@ -320,10 +324,17 @@ model SavedListing {
   listingId String
   listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
   note      String?
+  status    String   @default("saved") // saved | researching | applying | applied | completed | dismissed
+  priority  String   @default("medium") // low | medium | high
+  deadlineAt DateTime?
+  nextActionAt DateTime?
   createdAt DateTime @default(now())
 
   @@unique([userId, listingId])
   @@index([userId])
+  @@index([userId, status])
+  @@index([deadlineAt])
+  @@index([nextActionAt])
 }
 
 // ---------------------------------------------------------------------------
@@ -455,7 +466,7 @@ model Notification {
   id        String   @id @default(cuid())
   userId    String
   user      AppUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      String   // new_match | price_drop | system | welcome
+  type      String   // new_match | price_drop | opportunity_reminder | system | welcome
   title     String
   body      String
   link      String?

@@ -12,14 +12,17 @@ interface SaveButtonProps {
 }
 
 export function SaveButton({ listingId, initialSaved = false, size = "sm" }: SaveButtonProps) {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [saved, setSaved] = useState(initialSaved);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   const handleToggle = async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    if (status === "loading") return;
 
     if (!session?.user || (session.user as Record<string, unknown>).id === "admin") {
       router.push("/auth/signin");
@@ -27,6 +30,7 @@ export function SaveButton({ listingId, initialSaved = false, size = "sm" }: Sav
     }
 
     setLoading(true);
+    setError("");
     const res = await fetch("/api/user/saved", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -36,16 +40,24 @@ export function SaveButton({ listingId, initialSaved = false, size = "sm" }: Sav
     if (res.ok) {
       const data = await res.json();
       setSaved(data.saved);
+    } else if (res.status === 403) {
+      const data = await res.json().catch(() => null) as { code?: string; error?: string } | null;
+      if (data?.code === "SAVE_LIMIT_REACHED") {
+        setError(data.error || "Free accounts can track up to 20 opportunities.");
+        router.push("/pricing");
+      }
     }
     setLoading(false);
   };
 
   const iconSize = size === "sm" ? "h-4 w-4" : "h-5 w-5";
+  const label = error || (saved ? "Remove from saved" : "Save opportunity");
 
   return (
     <button
       onClick={handleToggle}
-      disabled={loading}
+      disabled={loading || status === "loading"}
+      aria-label={label}
       className={`inline-flex items-center justify-center rounded-full transition-colors ${
         size === "sm" ? "h-7 w-7" : "h-9 w-9"
       } ${
@@ -53,7 +65,7 @@ export function SaveButton({ listingId, initialSaved = false, size = "sm" }: Sav
           ? "text-red-500 hover:text-red-600"
           : "text-muted-foreground hover:text-red-500"
       }`}
-      title={saved ? "Remove from saved" : "Save listing"}
+      title={label}
     >
       <Heart className={`${iconSize} ${saved ? "fill-current" : ""}`} />
     </button>

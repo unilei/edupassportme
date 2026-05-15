@@ -3,16 +3,20 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import type { Prisma } from "@/generated/prisma/client";
 
+type AdminSessionLike = { user?: Record<string, unknown> | null } | null | undefined;
+
+export function isAdminSession(session: AdminSessionLike) {
+  const user = session?.user;
+  return user?.id === "admin" && user?.role === "admin";
+}
+
 /**
  * Verify the current request is from an authenticated admin.
  * Returns the session or null if not admin.
  */
 export async function requireAdmin() {
   const session = await getServerSession(authOptions);
-  const userId = (session?.user as Record<string, unknown> | undefined)?.id as
-    | string
-    | undefined;
-  if (userId !== "admin") return null;
+  if (!isAdminSession(session)) return null;
   return session;
 }
 

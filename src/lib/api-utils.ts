@@ -42,8 +42,8 @@ export async function requireUser(): Promise<AuthResult | NextResponse> {
  */
 export async function requireAdmin(): Promise<AuthResult | NextResponse> {
   const session = await getServerSession(authOptions);
-  const userId = (session?.user as Record<string, unknown> | undefined)?.id as string | undefined;
-  if (userId !== "admin") {
+  const user = session?.user as Record<string, unknown> | undefined;
+  if (user?.id !== "admin" || user?.role !== "admin") {
     return apiError("Unauthorized", 401);
   }
   return { userId: "admin", isAdmin: true };

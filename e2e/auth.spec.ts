@@ -1,6 +1,8 @@
 import { test, expect } from "@playwright/test";
 
 test.describe("Authentication", () => {
+  test.describe.configure({ mode: "serial" });
+
   test("should show sign in form with email and password fields", async ({ page }) => {
     await page.goto("/auth/signin");
     await expect(page.locator('input[type="email"]')).toBeVisible();
@@ -34,6 +36,62 @@ test.describe("Authentication", () => {
     await page.locator("main").getByRole("button", { name: /Sign In|登录/ }).click();
     // Wait for error message to appear
     await expect(page.locator("main").getByText("Invalid email or password")).toBeVisible({ timeout: 10_000 });
+  });
+
+  test("should show check-email success state after registration without using a real mailbox", async ({ page }, testInfo) => {
+    const uniqueEmail = `signup-success-${testInfo.workerIndex}-${Date.now()}@example.invalid`;
+    let registerRequestBody: Record<string, string> | undefined;
+    let signInAttempted = false;
+
+    await page.route("**/api/auth/register", async (route) => {
+      const request = route.request();
+      registerRequestBody = JSON.parse(request.postData() || "{}") as Record<string, string>;
+      await route.fulfill({
+        status: 201,
+        contentType: "application/json",
+        body: JSON.stringify({
+          user: {
+            id: `e2e-${Date.now()}`,
+            email: uniqueEmail,
+            name: "E2E Signup User",
+          },
+          message: "Verification email sent",
+        }),
+      });
+    });
+
+    await page.route("**/api/auth/callback/**", async (route) => {
+      signInAttempted = true;
+      await route.fulfill({
+        status: 200,
+        contentType: "application/json",
+        body: JSON.stringify({ url: "/profile" }),
+      });
+    });
+
+    await page.goto("/auth/signup");
+    await page.locator('input[name="name"]').fill("E2E Signup User");
+    await page.locator('input[type="email"]').fill(uniqueEmail);
+    await page.locator('input[type="password"]').fill("ValidPass123!");
+    await page.locator("main").getByRole("button", { name: /Create Account|注册/ }).click();
+
+    const successMessage = page.locator("main").getByText(/check.*email|verify.*email|verification email sent/i).first();
+    await expect
+      .poll(
+        async () => {
+          if (signInAttempted) return "sign-in attempted";
+          return (await successMessage.isVisible()) ? "success" : "pending";
+        },
+        { timeout: 10_000 },
+      )
+      .toBe("success");
+    expect(registerRequestBody).toMatchObject({
+      email: uniqueEmail,
+      password: "ValidPass123!",
+      name: "E2E Signup User",
+    });
+    expect(signInAttempted).toBe(false);
+    await expect(page).not.toHaveURL(/\/profile/);
   });
 
   test("should show billing sign in prompt for unauthenticated users", async ({ page }) => {

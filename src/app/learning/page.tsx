@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { AuthRequired, AuthRequiredPrompt } from "@/components/auth/AuthRequired";
 import { useFetch } from "@/hooks/useFetch";
 import { BookOpen, CheckCircle, Clock, XCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -42,14 +43,14 @@ const statusLabels: Record<string, string> = {
   dropped: "Dropped",
 };
 
-export default function LearningPage() {
+function LearningContent() {
   const [statusFilter, setStatusFilter] = useState("");
   const [actionKey, setActionKey] = useState(0);
 
   const params = new URLSearchParams();
   if (statusFilter) params.set("status", statusFilter);
 
-  const { data, loading } = useFetch<ProgressResponse>(
+  const { data, loading, status } = useFetch<ProgressResponse>(
     `/api/user/progress?${params}&_k=${actionKey}`,
   );
 
@@ -67,6 +68,16 @@ export default function LearningPage() {
     await fetch(`/api/user/progress?listingId=${listingId}`, { method: "DELETE" });
     setActionKey((k) => k + 1);
   };
+
+  if (status === 401) {
+    return (
+      <AuthRequiredPrompt
+        callbackUrl="/learning"
+        title="Sign in to track your learning"
+        description="Your learning list and progress are saved to your EDU Passport account."
+      />
+    );
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 space-y-6">
@@ -178,5 +189,17 @@ export default function LearningPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function LearningPage() {
+  return (
+    <AuthRequired
+      callbackUrl="/learning"
+      title="Sign in to track your learning"
+      description="Your learning list and progress are saved to your EDU Passport account."
+    >
+      <LearningContent />
+    </AuthRequired>
   );
 }

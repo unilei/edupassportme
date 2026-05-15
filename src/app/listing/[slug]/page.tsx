@@ -1,11 +1,14 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
+import { getServerSession } from "next-auth";
 import { OptimizedImage } from "@/components/shared/OptimizedImage";
 import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
+import { authOptions } from "@/lib/auth";
 import { createMetadata, jsonLdCourse, jsonLdJobPosting, jsonLdEvent } from "@/lib/metadata";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { ListingCard } from "@/components/listing/ListingCard";
+import { SaveButtonWrapper } from "@/components/listing/SaveButtonWrapper";
 import { ExternalLink, Star, Clock, MapPin, Tag, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { ReviewSectionWrapper } from "@/components/listing/ReviewSectionWrapper";
@@ -32,6 +35,9 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function ListingDetailPage({ params }: PageProps) {
   const { slug } = await params;
+  const session = await getServerSession(authOptions);
+  const sessionUser = session?.user as Record<string, unknown> | undefined;
+  const userId = typeof sessionUser?.id === "string" && sessionUser.id !== "admin" ? sessionUser.id : null;
   const publicListingWhere = activeListingWhere();
 
   const listing = await prisma.listing.findFirst({
@@ -48,6 +54,13 @@ export default async function ListingDetailPage({ params }: PageProps) {
   });
 
   if (!listing) notFound();
+
+  const savedListing = userId
+    ? await prisma.savedListing.findUnique({
+        where: { userId_listingId: { userId, listingId: listing.id } },
+        select: { id: true },
+      })
+    : null;
 
   // Related listings (same type + category)
   const related = await prisma.listing.findMany({
@@ -98,6 +111,7 @@ export default async function ListingDetailPage({ params }: PageProps) {
               <Badge variant="outline" className="uppercase text-xs">
                 {typeLabel}
               </Badge>
+              <SaveButtonWrapper listingId={listing.id} initialSaved={Boolean(savedListing)} />
               <ShareButton title={listing.title} slug={listing.slug} description={listing.description} />
             </div>
             <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">

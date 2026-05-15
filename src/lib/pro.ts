@@ -24,7 +24,7 @@ export async function isProUser(userId: string): Promise<boolean> {
     select: { tier: true, proExpiresAt: true },
   });
   if (!user || user.tier !== "pro") return false;
-  if (user.proExpiresAt && user.proExpiresAt < new Date()) return false;
+  if (user.proExpiresAt && user.proExpiresAt <= new Date()) return false;
   return true;
 }
 

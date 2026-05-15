@@ -17,10 +17,27 @@ export default function SignInPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState("");
+
+  const setSignInError = (code?: string | null) => {
+    if (code === "UNVERIFIED_EMAIL") {
+      setError("Please verify your email before signing in.");
+      return;
+    }
+
+    if (code === "ACCOUNT_BANNED") {
+      setError("Your account has been suspended.");
+      return;
+    }
+
+    setError("Invalid email or password");
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    setResendMessage("");
     setLoading(true);
 
     const res = await signIn("user-login", {
@@ -32,12 +49,31 @@ export default function SignInPage() {
     setLoading(false);
 
     if (!res?.ok || res.error) {
-      setError("Invalid email or password");
+      setSignInError(res?.error);
       return;
     }
 
     router.push(callbackUrl);
     router.refresh();
+  };
+
+  const handleResendVerification = async () => {
+    setResendLoading(true);
+    setResendMessage("");
+
+    try {
+      const res = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data: { message?: string; error?: string } = await res.json();
+      setResendMessage(res.ok ? (data.message || "Verification email sent.") : (data.error || "Unable to resend verification email."));
+    } catch {
+      setResendMessage("Unable to resend verification email.");
+    } finally {
+      setResendLoading(false);
+    }
   };
 
   return (
@@ -58,6 +94,22 @@ export default function SignInPage() {
             {error && (
               <div className="rounded-xl bg-destructive/10 text-destructive text-sm px-4 py-3 border border-destructive/20">
                 {error}
+                {error === "Please verify your email before signing in." && (
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resendLoading || !email}
+                    className="mt-2 block text-xs font-semibold text-destructive underline-offset-4 hover:underline disabled:opacity-60"
+                  >
+                    {resendLoading ? "Sending verification email..." : "Resend verification email"}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {resendMessage && (
+              <div className="rounded-xl border border-primary/20 bg-primary/10 px-4 py-3 text-sm text-primary">
+                {resendMessage}
               </div>
             )}
 

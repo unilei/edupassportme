@@ -1,5 +1,6 @@
 "use client";
 
+import { AuthRequired, AuthRequiredPrompt } from "@/components/auth/AuthRequired";
 import { useFetch } from "@/hooks/useFetch";
 import { Award } from "lucide-react";
 
@@ -18,8 +19,18 @@ interface BadgesResponse {
   total: number;
 }
 
-export default function BadgesPage() {
-  const { data, loading } = useFetch<BadgesResponse>("/api/user/badges");
+function BadgesContent() {
+  const { data, loading, status } = useFetch<BadgesResponse>("/api/user/badges");
+
+  if (status === 401) {
+    return (
+      <AuthRequiredPrompt
+        callbackUrl="/badges"
+        title="Sign in to view your badges"
+        description="Badges are earned from your saved activity and learning progress."
+      />
+    );
+  }
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 space-y-6">
@@ -71,5 +82,17 @@ export default function BadgesPage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function BadgesPage() {
+  return (
+    <AuthRequired
+      callbackUrl="/badges"
+      title="Sign in to view your badges"
+      description="Badges are earned from your saved activity and learning progress."
+    >
+      <BadgesContent />
+    </AuthRequired>
   );
 }

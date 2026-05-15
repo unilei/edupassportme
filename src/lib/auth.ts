@@ -39,7 +39,11 @@ export const authOptions: NextAuthOptions = {
         if (!valid) return null;
 
         if (user.banned) {
-          throw new Error("Your account has been suspended.");
+          throw new Error("ACCOUNT_BANNED");
+        }
+
+        if (!user.emailVerified) {
+          throw new Error("UNVERIFIED_EMAIL");
         }
 
         return { id: user.id, name: user.name || user.email, email: user.email, role: user.role, tier: user.tier };
@@ -59,6 +63,20 @@ export const authOptions: NextAuthOptions = {
         const u = user as unknown as Record<string, unknown>;
         token.role = u.role as string;
         token.tier = (u.tier as string) || "free";
+        return token;
+      }
+
+      const userId = typeof token.userId === "string" ? token.userId : undefined;
+      if (userId && userId !== "admin") {
+        const currentUser = await prisma.appUser.findUnique({
+          where: { id: userId },
+          select: { role: true, tier: true, banned: true },
+        });
+        if (currentUser) {
+          token.role = currentUser.banned ? "user" : currentUser.role;
+          token.tier = currentUser.banned ? "free" : currentUser.tier || "free";
+          token.banned = currentUser.banned;
+        }
       }
       return token;
     },

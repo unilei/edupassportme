@@ -39,7 +39,11 @@ export async function POST(request: NextRequest) {
     const template = emailVerificationTemplate(user.name || "", token);
     await sendMail({ to: email, ...template });
 
-    return NextResponse.json({ user, message: "Verification email sent" }, { status: 201 });
+    return NextResponse.json({
+      user,
+      requiresVerification: true,
+      message: "Verification email sent. Please check your email before signing in.",
+    }, { status: 201 });
   } catch (err) {
     console.error("[Register Error]", err);
     const msg = err instanceof Error ? err.message : "Unknown error";

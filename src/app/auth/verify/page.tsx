@@ -77,10 +77,10 @@ function VerifyContent() {
             <h1 className="text-xl font-bold mb-2">Verification Failed</h1>
             <p className="text-muted-foreground text-sm mb-6">{message}</p>
             <Link
-              href="/auth/signup"
+              href="/auth/signin"
               className="inline-flex items-center px-6 py-2.5 rounded-lg bg-primary text-primary-foreground font-medium hover:bg-primary/90 transition-colors"
             >
-              Sign Up Again
+              Return to Sign In
             </Link>
           </>
         )}

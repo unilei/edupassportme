@@ -51,6 +51,22 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const sessionUser = session.user as Record<string, unknown> | undefined;
+  const isAdmin = sessionUser?.id === "admin" && sessionUser?.role === "admin";
+
+  if (!isAdmin) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="space-y-3 text-center">
+          <p className="text-sm font-medium">Admin access required</p>
+          <a href="/admin/login" className="text-sm text-primary underline">
+            Sign in as admin
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-[calc(100vh-3.5rem)]">
       <aside className="w-60 shrink-0 border-r bg-muted/30 p-4 hidden md:block">

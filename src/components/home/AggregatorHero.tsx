@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Search, GraduationCap, Briefcase, Calendar, Tag, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -36,25 +37,18 @@ export function AggregatorHero() {
       <div className="absolute inset-0 -z-10 gradient-hero" />
       <div className="absolute inset-0 -z-10 bg-[radial-gradient(ellipse_at_top,oklch(0.65_0.2_250_/_0.15),transparent_60%)]" />
 
-      {/* Decorative elements */}
-      <div className="absolute top-20 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-10 right-10 w-96 h-96 bg-blue-500/5 rounded-full blur-3xl" />
-
       <div className="mx-auto max-w-4xl px-4 text-center relative">
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 border border-primary/20">
           <Sparkles className="h-4 w-4" />
-          <span>Discover 500+ Learning Resources</span>
+          <span>Student Opportunity Workspace</span>
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4 text-balance">
-          All Education in{" "}
-          <span className="bg-gradient-to-r from-primary via-blue-600 to-purple-600 bg-clip-text text-transparent">
-            One Place
-          </span>
+          Find the right student opportunities. Keep every next step moving.
         </h1>
         <p className="text-muted-foreground text-lg sm:text-xl mb-10 max-w-2xl mx-auto text-balance">
-          Compare courses, find jobs, discover events, and grab deals — across every platform.
+          Search courses, entry roles, education events, and student deals, then track deadlines and next actions in one workspace.
         </p>
 
         {/* Vertical tabs */}
@@ -95,17 +89,30 @@ export function AggregatorHero() {
           </div>
           <Button type="submit" size="lg" className="h-12 px-8 gradient-primary hover:opacity-90 transition-opacity">
             <Search className="h-4 w-4 mr-2" />
-            Search
+            Find
           </Button>
         </form>
+
+        <div className="mt-5 flex flex-col justify-center gap-3 sm:flex-row">
+          <Link href="/workspace">
+            <Button size="lg" variant="outline" className="h-11 px-6">
+              Open Workspace
+            </Button>
+          </Link>
+          <Link href="/profile">
+            <Button size="lg" variant="ghost" className="h-11 px-6">
+              Tune Preferences
+            </Button>
+          </Link>
+        </div>
 
         {/* Popular searches */}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <span className="text-sm text-muted-foreground">Popular:</span>
-          {["Machine Learning", "Web Development", "Data Science", "UX Design"].map((term) => (
+          {["Internship prep", "Scholarships", "Student discounts", "Career events"].map((term) => (
             <button
               key={term}
-              onClick={() => { setQuery(term); router.push(`/courses?q=${encodeURIComponent(term)}`); }}
+              onClick={() => { setQuery(term); router.push(`/search?q=${encodeURIComponent(term)}`); }}
               className="text-sm text-primary hover:underline hover:text-primary/80 transition-colors"
             >
               {term}

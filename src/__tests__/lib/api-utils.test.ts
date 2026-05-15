@@ -78,7 +78,7 @@ describe("api-utils", () => {
 
   describe("requireAdmin", () => {
     it("returns admin auth when logged in as admin", async () => {
-      mockedGetSession.mockResolvedValue({ user: { id: "admin" } });
+      mockedGetSession.mockResolvedValue({ user: { id: "admin", role: "admin" } });
       const result = await requireAdmin();
       expect(isAuthError(result)).toBe(false);
       if (!isAuthError(result)) {
@@ -89,6 +89,12 @@ describe("api-utils", () => {
 
     it("returns 401 when logged in as regular user", async () => {
       mockedGetSession.mockResolvedValue({ user: { id: "user1" } });
+      const result = await requireAdmin();
+      expect(isAuthError(result)).toBe(true);
+    });
+
+    it("returns 401 for the admin id without the admin role", async () => {
+      mockedGetSession.mockResolvedValue({ user: { id: "admin", role: "user" } });
       const result = await requireAdmin();
       expect(isAuthError(result)).toBe(true);
     });

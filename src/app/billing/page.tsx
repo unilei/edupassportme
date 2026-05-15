@@ -11,6 +11,7 @@ import {
   Loader2,
   ExternalLink,
   AlertCircle,
+  Mail,
 } from "lucide-react";
 
 interface SubscriptionData {
@@ -24,8 +25,15 @@ interface SubscriptionData {
 
 interface BillingData {
   tier: string;
+  proExpiresAt: string | null;
   subscription: SubscriptionData | null;
+  portalAvailable: boolean;
+  checkoutAvailable: boolean;
+  checkoutPlans: Record<string, { configured: boolean }>;
+  source: "stripe" | "manual" | "free";
 }
+
+const SUPPORT_EMAIL = "support@edupassport.me";
 
 export default function BillingPage() {
   const { data: session, status: authStatus } = useSession();
@@ -33,6 +41,7 @@ export default function BillingPage() {
   const [billing, setBilling] = useState<BillingData | null>(null);
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState("");
+  const [error, setError] = useState("");
 
   const success = searchParams.get("success") === "true";
 
@@ -48,8 +57,19 @@ export default function BillingPage() {
     }
     setLoading(true);
     fetch("/api/user/billing")
-      .then((r) => r.json())
-      .then((d: BillingData) => setBilling(d))
+      .then(async (r) => {
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || "Unable to load billing.");
+        return data as BillingData;
+      })
+      .then((d) => {
+        setBilling(d);
+        setError("");
+      })
+      .catch((err: Error) => {
+        setBilling(null);
+        setError(err.message || "Unable to load billing.");
+      })
       .finally(() => setLoading(false));
   }, [authStatus, isUser]);
 
@@ -59,24 +79,18 @@ export default function BillingPage() {
       const res = await fetch("/api/stripe/portal", { method: "POST" });
       const data = await res.json();
       if (data.url) window.location.href = data.url;
+      else setError(data.error || "Unable to open Stripe billing portal.");
+    } catch {
+      setError("Unable to open Stripe billing portal.");
     } finally {
       setActionLoading("");
     }
   };
 
-  const handleUpgrade = async (plan: "pro_monthly" | "pro_yearly") => {
-    setActionLoading(plan);
-    try {
-      const res = await fetch("/api/stripe/checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ plan }),
-      });
-      const data = await res.json();
-      if (data.url) window.location.href = data.url;
-    } finally {
-      setActionLoading("");
-    }
+  const contactHref = (plan: string) => {
+    const email = session?.user?.email || "";
+    const body = `Hi EDU Passport team,\n\nPlease activate ${plan} for my account.${email ? `\n\nAccount email: ${email}` : ""}`;
+    return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(`Activate ${plan}`)}&body=${encodeURIComponent(body)}`;
   };
 
   if (authStatus === "loading" || (isUser && loading)) {
@@ -103,6 +117,13 @@ export default function BillingPage() {
       <h1 className="text-2xl font-bold mb-2">Billing</h1>
       <p className="text-muted-foreground mb-8">Manage your subscription and payment methods</p>
 
+      {error && (
+        <div className="rounded-xl border border-red-200 bg-red-50 dark:bg-red-900/10 dark:border-red-800 p-4 mb-6 flex items-center gap-3">
+          <AlertCircle className="h-5 w-5 text-red-600 shrink-0" />
+          <p className="text-sm text-red-700 dark:text-red-400">{error}</p>
+        </div>
+      )}
+
       {/* Success banner */}
       {success && (
         <div className="rounded-xl border border-green-200 bg-green-50 dark:bg-green-900/10 dark:border-green-800 p-4 mb-6 flex items-center gap-3">
@@ -128,6 +149,10 @@ export default function BillingPage() {
                   sub.cancelAtPeriodEnd
                     ? `Cancels on ${new Date(sub.currentPeriodEnd).toLocaleDateString()}`
                     : `Renews on ${new Date(sub.currentPeriodEnd).toLocaleDateString()}`
+                ) : isPro && billing?.source === "manual" ? (
+                  billing.proExpiresAt
+                    ? `Manual Pro until ${new Date(billing.proExpiresAt).toLocaleDateString()}`
+                    : "Manual Pro access"
                 ) : (
                   "Basic access to EDU Passport"
                 )}
@@ -156,12 +181,12 @@ export default function BillingPage() {
 
         {/* Actions */}
         <div className="flex gap-3">
-          {isPro && (
+          {isPro && billing?.source === "stripe" && (
             <Button
               variant="outline"
               size="sm"
               onClick={handlePortal}
-              disabled={!!actionLoading}
+              disabled={!!actionLoading || !billing?.portalAvailable}
             >
               {actionLoading === "portal" ? (
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -173,6 +198,16 @@ export default function BillingPage() {
             </Button>
           )}
         </div>
+        {isPro && billing?.source === "manual" && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            This Pro access is managed manually. Stripe portal is available only for Stripe subscriptions.
+          </p>
+        )}
+        {!isPro && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Pro is activated manually right now. Contact EDU Passport after payment confirmation and an admin will enable your account.
+          </p>
+        )}
       </div>
 
       {/* Upgrade cards (show if not Pro) */}
@@ -193,13 +228,12 @@ export default function BillingPage() {
             </ul>
             <Button
               className="w-full"
-              onClick={() => handleUpgrade("pro_monthly")}
-              disabled={!!actionLoading}
+              asChild
             >
-              {actionLoading === "pro_monthly" ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : null}
-              Start 7-day free trial
+              <a href={contactHref("Pro Monthly")}>
+                <Mail className="h-4 w-4 mr-2" />
+                Email to Activate
+              </a>
             </Button>
           </div>
 
@@ -221,13 +255,12 @@ export default function BillingPage() {
             </ul>
             <Button
               className="w-full"
-              onClick={() => handleUpgrade("pro_yearly")}
-              disabled={!!actionLoading}
+              asChild
             >
-              {actionLoading === "pro_yearly" ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : null}
-              Start 7-day free trial
+              <a href={contactHref("Pro Yearly")}>
+                <Mail className="h-4 w-4 mr-2" />
+                Email to Activate
+              </a>
             </Button>
           </div>
         </div>

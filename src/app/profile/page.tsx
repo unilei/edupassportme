@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, type Dispatch, type SetStateAction } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { User, GraduationCap, Heart, Loader2, Check, Bell, Award, Users, BookOpen, Rss } from "lucide-react";
+import { User, GraduationCap, Heart, Loader2, Check, Bell, Award, Users, BookOpen, Rss, Target } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { SessionProvider } from "next-auth/react";
 import Link from "next/link";
 import { useFetch } from "@/hooks/useFetch";
+import { AuthRequired, AuthRequiredPrompt } from "@/components/auth/AuthRequired";
 
 const EDUCATION_LEVELS = ["High School", "Undergraduate", "Graduate", "PhD", "Professional", "Self-learner"];
 
@@ -17,6 +17,21 @@ const INTEREST_OPTIONS = [
   "Cloud Computing", "Cybersecurity", "UX Design", "Digital Marketing",
   "Project Management", "Language Learning", "Mathematics", "Physics",
   "Business", "Finance", "Teaching", "EdTech", "Writing", "Research",
+];
+
+const GOAL_OPTIONS = [
+  "Internship-ready skills", "Scholarship planning", "Career switch",
+  "Graduate school prep", "Build a portfolio", "Find student discounts",
+  "Attend events", "Earn credentials",
+];
+
+const TARGET_REGION_OPTIONS = ["United States", "Remote", "Canada", "United Kingdom", "Europe", "Asia-Pacific"];
+
+const PREFERRED_TYPE_OPTIONS = [
+  { value: "course", label: "Courses" },
+  { value: "job", label: "Jobs" },
+  { value: "event", label: "Events" },
+  { value: "deal", label: "Deals" },
 ];
 
 interface ProfileData {
@@ -28,6 +43,10 @@ interface ProfileData {
     profile: {
       educationLevel: string | null;
       interests: string[];
+      goals: string[];
+      targetRegions: string[];
+      preferredTypes: string[];
+      onboardingCompletedAt: string | null;
       preferredLang: string;
       notifyNewMatch: boolean;
       notifyPriceDrop: boolean;
@@ -112,6 +131,7 @@ function ProfileContent() {
   const router = useRouter();
   const [profile, setProfile] = useState<ProfileData["user"]>(null);
   const [loading, setLoading] = useState(true);
+  const [authExpired, setAuthExpired] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
 
@@ -119,19 +139,33 @@ function ProfileContent() {
   const [name, setName] = useState("");
   const [educationLevel, setEducationLevel] = useState("");
   const [interests, setInterests] = useState<string[]>([]);
+  const [goals, setGoals] = useState<string[]>([]);
+  const [targetRegions, setTargetRegions] = useState<string[]>([]);
+  const [preferredTypes, setPreferredTypes] = useState<string[]>([]);
   const [notifyNewMatch, setNotifyNewMatch] = useState(true);
   const [notifyPriceDrop, setNotifyPriceDrop] = useState(true);
   const [notifyNewsletter, setNotifyNewsletter] = useState(true);
 
   const fetchProfile = useCallback(() => {
     fetch("/api/user/profile")
-      .then((r) => r.json())
+      .then((r) => {
+        if (r.status === 401) {
+          setAuthExpired(true);
+          setLoading(false);
+          return null;
+        }
+        return r.json();
+      })
       .then((data: ProfileData) => {
+        if (!data) return;
         setProfile(data.user);
         if (data.user) {
           setName(data.user.name || "");
           setEducationLevel(data.user.profile?.educationLevel || "");
           setInterests(data.user.profile?.interests || []);
+          setGoals(data.user.profile?.goals || []);
+          setTargetRegions(data.user.profile?.targetRegions || []);
+          setPreferredTypes(data.user.profile?.preferredTypes || []);
           setNotifyNewMatch(data.user.profile?.notifyNewMatch ?? true);
           setNotifyPriceDrop(data.user.profile?.notifyPriceDrop ?? true);
           setNotifyNewsletter(data.user.profile?.notifyNewsletter ?? true);
@@ -143,8 +177,7 @@ function ProfileContent() {
 
   useEffect(() => {
     if (status === "authenticated") fetchProfile();
-    else if (status === "unauthenticated") router.push("/auth/signin");
-  }, [status, fetchProfile, router]);
+  }, [status, fetchProfile]);
 
   const toggleInterest = (interest: string) => {
     setInterests((prev) =>
@@ -152,16 +185,37 @@ function ProfileContent() {
     );
   };
 
-  const handleSave = async () => {
+  const toggleValue = (value: string, setter: Dispatch<SetStateAction<string[]>>) => {
+    setter((prev) => (
+      prev.includes(value) ? prev.filter((item) => item !== value) : [...prev, value]
+    ));
+  };
+
+  const handleSave = async (completeOnboarding = false) => {
     setSaving(true);
     setSaved(false);
     await fetch("/api/user/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ name, educationLevel, interests, notifyNewMatch, notifyPriceDrop, notifyNewsletter }),
+      body: JSON.stringify({
+        name,
+        educationLevel,
+        interests,
+        goals,
+        targetRegions,
+        preferredTypes,
+        notifyNewMatch,
+        notifyPriceDrop,
+        notifyNewsletter,
+        completeOnboarding,
+      }),
     });
     setSaving(false);
     setSaved(true);
+    if (completeOnboarding) {
+      router.push("/workspace");
+      return;
+    }
     setTimeout(() => setSaved(false), 2000);
   };
 
@@ -170,6 +224,16 @@ function ProfileContent() {
       <div className="flex items-center justify-center py-24">
         <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
       </div>
+    );
+  }
+
+  if (authExpired) {
+    return (
+      <AuthRequiredPrompt
+        callbackUrl="/profile"
+        title="Sign in to view your profile"
+        description="Your profile settings are private to your EDU Passport account."
+      />
     );
   }
 
@@ -252,6 +316,74 @@ function ProfileContent() {
           </div>
         </div>
 
+        {/* Opportunity workspace preferences */}
+        <div className="space-y-5 rounded-xl border p-4">
+          <div className="flex items-center gap-2">
+            <Target className="h-4 w-4 text-primary" />
+            <div>
+              <p className="text-sm font-medium">Opportunity Workspace</p>
+              <p className="text-xs text-muted-foreground">Tune recommendations and deadline tracking around your next move.</p>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Goals</label>
+            <div className="flex flex-wrap gap-2">
+              {GOAL_OPTIONS.map((goal) => (
+                <button
+                  key={goal}
+                  onClick={() => toggleValue(goal, setGoals)}
+                  className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
+                    goals.includes(goal)
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background hover:bg-muted border-border"
+                  }`}
+                >
+                  {goal}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Target Regions</label>
+            <div className="flex flex-wrap gap-2">
+              {TARGET_REGION_OPTIONS.map((region) => (
+                <button
+                  key={region}
+                  onClick={() => toggleValue(region, setTargetRegions)}
+                  className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
+                    targetRegions.includes(region)
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background hover:bg-muted border-border"
+                  }`}
+                >
+                  {region}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Preferred Opportunity Types</label>
+            <div className="flex flex-wrap gap-2">
+              {PREFERRED_TYPE_OPTIONS.map((type) => (
+                <button
+                  key={type.value}
+                  onClick={() => toggleValue(type.value, setPreferredTypes)}
+                  className={`px-3 py-1.5 rounded-full border text-sm transition-colors ${
+                    preferredTypes.includes(type.value)
+                      ? "bg-primary text-primary-foreground border-primary"
+                      : "bg-background hover:bg-muted border-border"
+                  }`}
+                >
+                  {type.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
         {/* Notification Preferences */}
         <div className="space-y-3 pt-2 border-t">
           <div className="flex items-center gap-2 mb-1">
@@ -288,15 +420,20 @@ function ProfileContent() {
         </div>
 
         {/* Save button */}
-        <Button onClick={handleSave} disabled={saving} className="w-full sm:w-auto">
-          {saving ? (
-            <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
-          ) : saved ? (
-            <><Check className="h-4 w-4 mr-2" /> Saved!</>
-          ) : (
-            "Save Profile"
-          )}
-        </Button>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Button onClick={() => handleSave(false)} disabled={saving} className="w-full sm:w-auto">
+            {saving ? (
+              <><Loader2 className="h-4 w-4 mr-2 animate-spin" /> Saving...</>
+            ) : saved ? (
+              <><Check className="h-4 w-4 mr-2" /> Saved!</>
+            ) : (
+              "Save Profile"
+            )}
+          </Button>
+          <Button onClick={() => handleSave(true)} disabled={saving} variant="outline" className="w-full sm:w-auto">
+            Save and Open Workspace
+          </Button>
+        </div>
       </div>
     </div>
   );
@@ -304,8 +441,12 @@ function ProfileContent() {
 
 export default function ProfilePage() {
   return (
-    <SessionProvider>
+    <AuthRequired
+      callbackUrl="/profile"
+      title="Sign in to view your profile"
+      description="Your profile settings are private to your EDU Passport account."
+    >
       <ProfileContent />
-    </SessionProvider>
+    </AuthRequired>
   );
 }

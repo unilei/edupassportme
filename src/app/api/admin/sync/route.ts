@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { requireAdmin } from "@/lib/admin";
 import { getProviderRuntimeStatus, syncAllProviders, syncSingleProvider } from "@/lib/providers/registry";
 
 type ProviderHealth = "healthy" | "failing" | "needs_configuration" | "unsupported" | "inactive" | "never_synced";
@@ -27,8 +26,7 @@ function maxDate(dates: Array<Date | null | undefined>): Date | null {
 }
 
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!(await requireAdmin())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -50,8 +48,7 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  if (!session) {
+  if (!(await requireAdmin())) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

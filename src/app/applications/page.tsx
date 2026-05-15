@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useSession, SessionProvider } from "next-auth/react";
+import { useSession } from "next-auth/react";
 import { FileText, MapPin, ExternalLink, Clock, Crown } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
+import { AuthRequired, AuthRequiredPrompt } from "@/components/auth/AuthRequired";
 
 interface ApplicationItem {
   id: string;
@@ -33,10 +34,13 @@ const statusColors: Record<string, string> = {
   withdrawn: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
 };
 
+const applicationStatuses = ["draft", "applied", "viewed", "interview", "offered", "rejected", "withdrawn"];
+
 function ApplicationsContent() {
   const { data: session, status: authStatus } = useSession();
   const [applications, setApplications] = useState<ApplicationItem[]>([]);
   const [loading] = useState(false);
+  const [authExpired, setAuthExpired] = useState(false);
 
   const userId = (session?.user as Record<string, unknown> | undefined)?.id as string | undefined;
   const userTier = (session?.user as Record<string, unknown> | undefined)?.tier as string | undefined;
@@ -48,6 +52,10 @@ function ApplicationsContent() {
     let cancelled = false;
     (async () => {
       const r = await fetch("/api/user/applications");
+      if (r.status === 401) {
+        if (!cancelled) setAuthExpired(true);
+        return;
+      }
       const d = await r.json();
       if (!cancelled) setApplications(d.applications || []);
     })();
@@ -68,8 +76,18 @@ function ApplicationsContent() {
         <FileText className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
         <h1 className="text-2xl font-bold mb-2">Track Your Applications</h1>
         <p className="text-muted-foreground mb-6">Sign in to view and manage your job applications</p>
-        <Link href="/auth/signin"><Button>Sign In</Button></Link>
+        <Link href="/auth/signin?callbackUrl=/applications"><Button>Sign In</Button></Link>
       </div>
+    );
+  }
+
+  if (authExpired) {
+    return (
+      <AuthRequiredPrompt
+        callbackUrl="/applications"
+        title="Sign in to track applications"
+        description="Application tracking is stored in your EDU Passport account."
+      />
     );
   }
 
@@ -83,6 +101,18 @@ function ApplicationsContent() {
       </div>
     );
   }
+
+  const handleStatusChange = async (applicationId: string, nextStatus: string) => {
+    const res = await fetch("/api/user/applications", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ applicationId, status: nextStatus }),
+    });
+    if (!res.ok) return;
+    setApplications((prev) => prev.map((app) => (
+      app.id === applicationId ? { ...app, status: nextStatus } : app
+    )));
+  };
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-8">
@@ -132,9 +162,16 @@ function ApplicationsContent() {
                     <Link href={`/listing/${app.listing.slug}`} className="font-semibold text-sm hover:text-primary transition-colors">
                       {app.listing.title}
                     </Link>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium capitalize ${statusColors[app.status] || statusColors.draft}`}>
-                      {app.status}
-                    </span>
+                    <select
+                      value={app.status}
+                      onChange={(event) => handleStatusChange(app.id, event.target.value)}
+                      className={`rounded-full border-0 px-2 py-0.5 text-[10px] font-medium capitalize outline-none ${statusColors[app.status] || statusColors.draft}`}
+                      aria-label={`Status for ${app.listing.title}`}
+                    >
+                      {applicationStatuses.map((status) => (
+                        <option key={status} value={status}>{status}</option>
+                      ))}
+                    </select>
                   </div>
                   <div className="flex items-center gap-3 text-xs text-muted-foreground">
                     <span>{app.listing.provider.name}</span>
@@ -173,8 +210,12 @@ function ApplicationsContent() {
 
 export default function ApplicationsPage() {
   return (
-    <SessionProvider>
+    <AuthRequired
+      callbackUrl="/applications"
+      title="Sign in to track applications"
+      description="Application tracking is stored in your EDU Passport account."
+    >
       <ApplicationsContent />
-    </SessionProvider>
+    </AuthRequired>
   );
 }

@@ -32,6 +32,9 @@ export async function getRecommendations({ userId, limit = 12 }: RecommendationO
   if (!user) return [];
 
   const interests = user.profile?.interests ?? [];
+  const goals = user.profile?.goals ?? [];
+  const targetRegions = user.profile?.targetRegions ?? [];
+  const preferredTypes = user.profile?.preferredTypes ?? [];
   const educationLevel = user.profile?.educationLevel ?? "";
 
   // Build affinity signals from saved listings
@@ -58,8 +61,7 @@ export async function getRecommendations({ userId, limit = 12 }: RecommendationO
   };
   const preferredLevels = levelMap[educationLevel] ?? [];
 
-  // Map interests to search keywords
-  const interestKeywords = interests.map((i) => i.toLowerCase());
+  // Map profile preferences to search keywords.
   // Fetch candidate listings (exclude already saved)
   const candidates = await prisma.listing.findMany({
     where: {
@@ -77,26 +79,69 @@ export async function getRecommendations({ userId, limit = 12 }: RecommendationO
   // Score each candidate
   const scored = candidates.map((listing) => {
     let score = 0;
+    const reasons = new Set<string>();
+    const text = [
+      listing.title,
+      listing.description,
+      listing.location,
+      listing.country,
+      listing.region,
+      listing.companyName,
+      ...listing.tags.map((lt) => lt.tag.name),
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
 
     // Category affinity (from saved listings)
     if (listing.category && savedCategorySlugs.has(listing.category.slug)) {
       score += 20;
+      reasons.add(`Similar to opportunities you saved`);
     }
 
     // Tag affinity (from saved listings)
     for (const lt of listing.tags) {
-      if (savedTagSlugs.has(lt.tag.slug)) score += 5;
+      if (savedTagSlugs.has(lt.tag.slug)) {
+        score += 5;
+        reasons.add(`Matches saved topic: ${lt.tag.name}`);
+      }
     }
 
     // Interest keyword matching (title + description)
-    const text = `${listing.title} ${listing.description}`.toLowerCase();
-    for (const keyword of interestKeywords) {
-      if (text.includes(keyword)) score += 15;
+    for (const interest of interests) {
+      const keyword = interest.toLowerCase();
+      if (text.includes(keyword)) {
+        score += 15;
+        reasons.add(`Matches interest: ${interest}`);
+      }
+    }
+
+    for (const goal of goals) {
+      const keyword = goal.toLowerCase();
+      const goalParts = keyword.split(/\W+/).filter((part) => part.length > 4);
+      if (text.includes(keyword) || goalParts.some((part) => text.includes(part))) {
+        score += 25;
+        reasons.add(`Matches your goal: ${goal}`);
+      }
+    }
+
+    for (const region of targetRegions) {
+      const keyword = region.toLowerCase();
+      if (text.includes(keyword)) {
+        score += 15;
+        reasons.add(`Matches target region: ${region}`);
+      }
+    }
+
+    if (preferredTypes.includes(listing.type)) {
+      score += 18;
+      reasons.add(`Preferred opportunity type: ${listing.type}`);
     }
 
     // Education level matching
     if (listing.level && preferredLevels.includes(listing.level)) {
       score += 10;
+      reasons.add(`Fits your education level`);
     }
 
     // Boost high-rated content
@@ -109,7 +154,23 @@ export async function getRecommendations({ userId, limit = 12 }: RecommendationO
       score += 5;
     }
 
-    return { listing, score };
+    if (listing.verified) {
+      score += 4;
+      reasons.add("Verified opportunity");
+    }
+    if (listing.expiresAt) {
+      score += 3;
+      reasons.add("Has a clear deadline");
+    }
+
+    return {
+      listing: {
+        ...listing,
+        fitScore: Math.max(0, Math.round(score)),
+        fitReasons: reasons.size > 0 ? [...reasons].slice(0, 4) : ["Popular with EDU Passport users"],
+      },
+      score,
+    };
   });
 
   // Sort by score descending, then by rating

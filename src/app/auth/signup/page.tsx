@@ -1,21 +1,19 @@
 "use client";
 
 import { useState } from "react";
-import { signIn } from "next-auth/react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { GraduationCap, Mail, Lock, User, Loader2, ArrowRight, Eye, EyeOff, Sparkles } from "lucide-react";
+import { GraduationCap, Mail, Lock, User, Loader2, ArrowRight, Eye, EyeOff, Sparkles, CheckCircle2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 export default function SignUpPage() {
-  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [checkEmailSent, setCheckEmailSent] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,22 +34,38 @@ export default function SignUpPage() {
       return;
     }
 
-    const signInRes = await signIn("user-login", {
-      email,
-      password,
-      redirect: false,
-    });
-
     setLoading(false);
-
-    if (signInRes?.error) {
-      setError("Account created but sign-in failed. Please sign in manually.");
-      return;
-    }
-
-    router.push("/profile");
-    router.refresh();
+    setCheckEmailSent(true);
   };
+
+  if (checkEmailSent) {
+    return (
+      <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
+        <div className="w-full max-w-md rounded-2xl border bg-card p-8 text-center shadow-xl shadow-primary/5">
+          <CheckCircle2 className="mx-auto mb-4 h-14 w-14 text-green-500" />
+          <h1 className="mb-2 text-2xl font-bold">Check your email</h1>
+          <p className="mb-6 text-sm text-muted-foreground">
+            We sent a verification link to <span className="font-medium text-foreground">{email}</span>. Verify your email before signing in.
+          </p>
+          <div className="space-y-3">
+            <Link
+              href="/auth/signin"
+              className="inline-flex h-11 w-full items-center justify-center rounded-xl bg-primary px-4 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              Go to Sign In
+            </Link>
+            <button
+              type="button"
+              onClick={() => setCheckEmailSent(false)}
+              className="text-sm font-medium text-muted-foreground transition-colors hover:text-primary"
+            >
+              Use a different email
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
