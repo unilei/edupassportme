@@ -29,12 +29,12 @@ model Category {
 }
 
 model Tag {
-  id          String       @id @default(cuid())
-  name        String       @unique
-  slug        String       @unique
-  items       ItemTag[]
-  listings    ListingTag[]
-  createdAt   DateTime     @default(now())
+  id        String       @id @default(cuid())
+  name      String       @unique
+  slug      String       @unique
+  items     ItemTag[]
+  listings  ListingTag[]
+  createdAt DateTime     @default(now())
 
   @@index([slug])
 }
@@ -65,8 +65,8 @@ model Item {
 model ItemTag {
   itemId String
   tagId  String
-  item   Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
-  tag    Tag  @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  item   Item   @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([itemId, tagId])
   @@index([tagId])
@@ -83,31 +83,31 @@ model Newsletter {
 // ---------------------------------------------------------------------------
 
 model Provider {
-  id            String         @id @default(cuid())
-  name          String
-  slug          String         @unique
-  url           String
-  logo          String?
-  description   String?
-  apiType         String         @default("rest") // rest | graphql | rss | scrape | manual
-  apiBaseUrl      String?
-  isActive        Boolean        @default(true)
-  syncFrequency   String         @default("daily") // hourly | daily | weekly
-  authType             String    @default("none") // none | api_key | oauth | basic | token
+  id                   String         @id @default(cuid())
+  name                 String
+  slug                 String         @unique
+  url                  String
+  logo                 String?
+  description          String?
+  apiType              String         @default("rest") // rest | graphql | rss | scrape | manual
+  apiBaseUrl           String?
+  isActive             Boolean        @default(true)
+  syncFrequency        String         @default("daily") // hourly | daily | weekly
+  authType             String         @default("none") // none | api_key | oauth | basic | token
   rateLimitPerMinute   Int?
   syncCursor           String?
   lastSuccessfulSyncAt DateTime?
   lastFailedSyncAt     DateTime?
-  failureCount         Int       @default(0)
+  failureCount         Int            @default(0)
   complianceNotes      String?
-  lastSyncAt      DateTime?
-  affiliateTag    String?
-  commissionRate  Float?         // e.g. 0.10 = 10%
-  listings        Listing[]
-  offers          ListingOffer[]
-  syncLogs        SyncLog[]
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  lastSyncAt           DateTime?
+  affiliateTag         String?
+  commissionRate       Float? // e.g. 0.10 = 10%
+  listings             Listing[]
+  offers               ListingOffer[]
+  syncLogs             SyncLog[]
+  createdAt            DateTime       @default(now())
+  updatedAt            DateTime       @updatedAt
 }
 
 enum ListingType {
@@ -118,64 +118,65 @@ enum ListingType {
 }
 
 model Listing {
-  id           String         @id @default(cuid())
-  title        String
-  slug         String         @unique
-  type         ListingType
-  description  String
-  content      String?
-  url          String
-  image        String?
-  price        Float?
-  currency     String         @default("USD")
-  priceLabel   String?
-  rating       Float?
-  reviewCount  Int?
-  duration     String?
-  level        String?
-  language     String         @default("en")
-  location     String?
-  startDate    DateTime?
-  endDate      DateTime?
-  expiresAt    DateTime?
-  featured     Boolean        @default(false)
-  verified     Boolean        @default(false)
-  viewCount    Int            @default(0)
-  clickCount   Int            @default(0)
-  externalId   String?
-  status          String    @default("active") // active | stale | expired | hidden | needs_review
-  canonicalUrl    String?
-  fingerprint     String?
-  sourceUpdatedAt DateTime?
-  publishedAt     DateTime?
-  lastSeenAt      DateTime?
-  qualityScore    Float     @default(0)
-  companyName     String?
-  salaryMin       Float?
-  salaryMax       Float?
-  salaryCurrency  String?
-  couponCode      String?
-  discountText    String?
-  venueName       String?
-  country         String?
-  region          String?
-  metadata        Json?
-  compliance      Json?
-  providerId   String
-  provider     Provider       @relation(fields: [providerId], references: [id])
-  categoryId   String?
-  category     Category?      @relation(fields: [categoryId], references: [id])
-  offers       ListingOffer[]
-  tags         ListingTag[]
-  savedBy      SavedListing[]
-  clicks       ClickEvent[]
-  sponsored    SponsoredListing[]
-  applications Application[]
-  priceHistory PriceHistory[]
-  reviews      Review[]
+  id               String             @id @default(cuid())
+  title            String
+  slug             String             @unique
+  type             ListingType
+  description      String
+  content          String?
+  url              String
+  image            String?
+  price            Float?
+  currency         String             @default("USD")
+  priceLabel       String?
+  rating           Float?
+  reviewCount      Int?
+  duration         String?
+  level            String?
+  language         String             @default("en")
+  location         String?
+  startDate        DateTime?
+  endDate          DateTime?
+  expiresAt        DateTime?
+  featured         Boolean            @default(false)
+  verified         Boolean            @default(false)
+  viewCount        Int                @default(0)
+  clickCount       Int                @default(0)
+  externalId       String?
+  status           String             @default("active") // active | stale | expired | hidden | needs_review
+  canonicalUrl     String?
+  fingerprint      String?
+  sourceUpdatedAt  DateTime?
+  publishedAt      DateTime?
+  lastSeenAt       DateTime?
+  qualityScore     Float              @default(0)
+  companyName      String?
+  salaryMin        Float?
+  salaryMax        Float?
+  salaryCurrency   String?
+  couponCode       String?
+  discountText     String?
+  venueName        String?
+  country          String?
+  region           String?
+  metadata         Json?
+  compliance       Json?
+  providerId       String
+  provider         Provider           @relation(fields: [providerId], references: [id])
+  categoryId       String?
+  category         Category?          @relation(fields: [categoryId], references: [id])
+  offers           ListingOffer[]
+  tags             ListingTag[]
+  savedBy          SavedListing[]
+  clicks           ClickEvent[]
+  sponsored        SponsoredListing[]
+  applications     Application[]
+  priceHistory     PriceHistory[]
+  reviews          Review[]
   learningProgress LearningProgress[]
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  sourceSubmission ListingSubmission? @relation("PublishedListingSubmission")
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
 
   @@unique([providerId, externalId])
   @@index([type])
@@ -192,11 +193,11 @@ model Listing {
 }
 
 model ListingOffer {
-  id          String   @id @default(cuid())
-  listingId   String
-  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  providerId  String
-  provider    Provider @relation(fields: [providerId], references: [id])
+  id           String   @id @default(cuid())
+  listingId    String
+  listing      Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  providerId   String
+  provider     Provider @relation(fields: [providerId], references: [id])
   url          String
   affiliateUrl String?
   price        Float?
@@ -222,21 +223,21 @@ model ListingTag {
 }
 
 model Deal {
-  id          String    @id @default(cuid())
-  title       String
-  slug        String    @unique
-  description String
-  code        String?
-  url         String
-  discount    String?
-  image       String?
+  id           String    @id @default(cuid())
+  title        String
+  slug         String    @unique
+  description  String
+  code         String?
+  url          String
+  discount     String?
+  image        String?
   providerName String?
   categorySlug String?
-  isActive    Boolean   @default(true)
-  startsAt    DateTime?
-  expiresAt   DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  isActive     Boolean   @default(true)
+  startsAt     DateTime?
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 
   @@index([isActive])
   @@index([expiresAt])
@@ -247,59 +248,64 @@ model Deal {
 // ---------------------------------------------------------------------------
 
 model AppUser {
-  id            String         @id @default(cuid())
-  email         String         @unique
-  passwordHash  String
-  name          String?
-  avatar        String?
-  role            String         @default("user") // user | pro | admin
-  tier            String         @default("free") // free | pro
-  proExpiresAt    DateTime?
-  emailVerified   Boolean        @default(false)
-  banned          Boolean        @default(false)
-  bannedAt        DateTime?
-  bannedReason    String?
-  stripeCustomerId String?      @unique
-  profile         UserProfile?
-  savedSearches   SavedSearch[]
-  savedListings   SavedListing[]
-  clicks          ClickEvent[]
-  applications    Application[]
-  notifications   Notification[]
-  reviews         Review[]
-  replies         Reply[]
-  reviewVotes     ReviewVote[]
-  reports         Report[]
-  subscriptions   Subscription[]
-  following       Follow[]       @relation("UserFollowing")
-  followers       Follow[]       @relation("UserFollowers")
-  activities      UserActivity[]
-  badges          UserBadge[]
-  learningProgress LearningProgress[]
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  id                   String                   @id @default(cuid())
+  email                String                   @unique
+  passwordHash         String
+  name                 String?
+  avatar               String?
+  role                 String                   @default("user") // user | pro | admin
+  tier                 String                   @default("free") // free | pro
+  proExpiresAt         DateTime?
+  emailVerified        Boolean                  @default(false)
+  banned               Boolean                  @default(false)
+  bannedAt             DateTime?
+  bannedReason         String?
+  stripeCustomerId     String?                  @unique
+  profile              UserProfile?
+  savedSearches        SavedSearch[]
+  savedListings        SavedListing[]
+  clicks               ClickEvent[]
+  applications         Application[]
+  notifications        Notification[]
+  reviews              Review[]
+  replies              Reply[]
+  reviewVotes          ReviewVote[]
+  reports              Report[]
+  subscriptions        Subscription[]
+  following            Follow[]                 @relation("UserFollowing")
+  followers            Follow[]                 @relation("UserFollowers")
+  activities           UserActivity[]
+  badges               UserBadge[]
+  learningProgress     LearningProgress[]
+  organizations        Organization[]           @relation("OrganizationOwner")
+  listingSubmissions   ListingSubmission[]      @relation("ListingSubmissionSubmitter")
+  reviewedSubmissions  ListingSubmission[]      @relation("ListingSubmissionReviewer")
+  dealProgramRequests  DealProgramApplication[] @relation("DealProgramSubmitter")
+  reviewedDealPrograms DealProgramApplication[] @relation("DealProgramReviewer")
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
 }
 
 model UserProfile {
-  id             String   @id @default(cuid())
-  userId         String   @unique
-  user           AppUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  educationLevel String?
-  interests      String[]
-  goals          String[] @default([])
-  targetRegions  String[] @default([])
-  preferredTypes String[] @default([])
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  user                  AppUser   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  educationLevel        String?
+  interests             String[]
+  goals                 String[]  @default([])
+  targetRegions         String[]  @default([])
+  preferredTypes        String[]  @default([])
   onboardingCompletedAt DateTime?
-  preferredLang    String   @default("en")
-  notifyNewMatch   Boolean  @default(true)
-  notifyPriceDrop  Boolean  @default(true)
-  notifyNewsletter Boolean  @default(true)
-  resumeUrl        String?
-  headline         String?
-  skills         String[]
-  experience     Json?
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  preferredLang         String    @default("en")
+  notifyNewMatch        Boolean   @default(true)
+  notifyPriceDrop       Boolean   @default(true)
+  notifyNewsletter      Boolean   @default(true)
+  resumeUrl             String?
+  headline              String?
+  skills                String[]
+  experience            Json?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 }
 
 model SavedSearch {
@@ -318,23 +324,141 @@ model SavedSearch {
 }
 
 model SavedListing {
-  id        String   @id @default(cuid())
-  userId    String
-  user      AppUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  listingId String
-  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  note      String?
-  status    String   @default("saved") // saved | researching | applying | applied | completed | dismissed
-  priority  String   @default("medium") // low | medium | high
-  deadlineAt DateTime?
+  id           String    @id @default(cuid())
+  userId       String
+  user         AppUser   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId    String
+  listing      Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  note         String?
+  status       String    @default("saved") // saved | researching | applying | applied | completed | dismissed
+  priority     String    @default("medium") // low | medium | high
+  deadlineAt   DateTime?
   nextActionAt DateTime?
-  createdAt DateTime @default(now())
+  createdAt    DateTime  @default(now())
 
   @@unique([userId, listingId])
   @@index([userId])
   @@index([userId, status])
   @@index([deadlineAt])
   @@index([nextActionAt])
+}
+
+enum OrganizationType {
+  school
+  recruiter
+  vendor
+  partner
+  employer
+  other
+}
+
+enum OrganizationStatus {
+  pending
+  active
+  suspended
+  rejected
+}
+
+enum ListingSubmissionStatus {
+  pending_review
+  needs_changes
+  approved
+  rejected
+  published
+  archived
+}
+
+enum DealProgramStatus {
+  pending
+  approved
+  rejected
+  invited
+  active
+  suspended
+}
+
+model Organization {
+  id                      String                   @id @default(cuid())
+  name                    String
+  type                    OrganizationType         @default(other)
+  website                 String?
+  description             String?
+  status                  OrganizationStatus       @default(pending)
+  verifiedAt              DateTime?
+  ownerId                 String
+  owner                   AppUser                  @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  submissions             ListingSubmission[]
+  dealProgramApplications DealProgramApplication[]
+  createdAt               DateTime                 @default(now())
+  updatedAt               DateTime                 @updatedAt
+
+  @@index([ownerId])
+  @@index([type, status])
+  @@index([createdAt])
+}
+
+model ListingSubmission {
+  id                 String                  @id @default(cuid())
+  type               ListingType
+  source             String                  @default("manual")
+  title              String
+  description        String
+  url                String
+  image              String?
+  companyName        String?
+  location           String?
+  country            String?
+  region             String?
+  startDate          DateTime?
+  endDate            DateTime?
+  expiresAt          DateTime?
+  priceLabel         String?
+  couponCode         String?
+  metadata           Json?
+  status             ListingSubmissionStatus @default(pending_review)
+  reviewNote         String?
+  submittedById      String
+  submittedBy        AppUser                 @relation("ListingSubmissionSubmitter", fields: [submittedById], references: [id], onDelete: Cascade)
+  organizationId     String?
+  organization       Organization?           @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  reviewedById       String?
+  reviewedBy         AppUser?                @relation("ListingSubmissionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt         DateTime?
+  publishedListingId String?                 @unique
+  publishedListing   Listing?                @relation("PublishedListingSubmission", fields: [publishedListingId], references: [id], onDelete: SetNull)
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  @@index([submittedById])
+  @@index([organizationId])
+  @@index([type, status])
+  @@index([createdAt])
+}
+
+model DealProgramApplication {
+  id              String            @id @default(cuid())
+  organizationId  String
+  organization    Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  submittedById   String
+  submittedBy     AppUser           @relation("DealProgramSubmitter", fields: [submittedById], references: [id], onDelete: Cascade)
+  contactName     String
+  contactEmail    String
+  proposedOffer   String
+  targetAudience  String?
+  status          DealProgramStatus @default(pending)
+  reviewNote      String?
+  reviewedById    String?
+  reviewedBy      AppUser?          @relation("DealProgramReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  reviewedAt      DateTime?
+  invitationToken String?
+  invitedAt       DateTime?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+
+  @@index([organizationId])
+  @@index([submittedById])
+  @@index([status])
+  @@index([createdAt])
 }
 
 // ---------------------------------------------------------------------------
@@ -345,12 +469,12 @@ model SyncLog {
   id           String    @id @default(cuid())
   providerId   String
   provider     Provider  @relation(fields: [providerId], references: [id])
-  status       String    // running | success | error
+  status       String // running | success | error
   itemsFound   Int       @default(0)
   itemsAdded   Int       @default(0)
   itemsUpdated Int       @default(0)
-  itemsSkipped Int     @default(0)
-  itemsExpired Int     @default(0)
+  itemsSkipped Int       @default(0)
+  itemsExpired Int       @default(0)
   durationMs   Int?
   details      Json?
   error        String?
@@ -386,21 +510,21 @@ model ClickEvent {
 // ---------------------------------------------------------------------------
 
 model SponsoredListing {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   listingId   String
-  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  position    String   // hero | feed | sidebar
-  label       String   @default("Sponsored")
-  budget      Float    @default(0)
-  spent       Float    @default(0)
-  impressions Int      @default(0)
-  clicks      Int      @default(0)
-  cpc         Float?   // cost per click
-  isActive    Boolean  @default(true)
-  startDate   DateTime @default(now())
+  listing     Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  position    String // hero | feed | sidebar
+  label       String    @default("Sponsored")
+  budget      Float     @default(0)
+  spent       Float     @default(0)
+  impressions Int       @default(0)
+  clicks      Int       @default(0)
+  cpc         Float? // cost per click
+  isActive    Boolean   @default(true)
+  startDate   DateTime  @default(now())
   endDate     DateTime?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   @@index([position, isActive])
   @@index([startDate])
@@ -410,24 +534,40 @@ model SponsoredListing {
 enum ApplicationStatus {
   draft
   applied
-  viewed
-  interview
-  offered
+  under_review
+  shortlisted
+  screening
+  interview_scheduled
+  interviewing
+  decision_pending
+  offer_extended
+  offer_accepted
+  hired
   rejected
+  offer_declined
   withdrawn
+  position_closed
 }
 
 model Application {
-  id         String            @id @default(cuid())
-  userId     String
-  user       AppUser           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  listingId  String
-  listing    Listing           @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  status     ApplicationStatus @default(applied)
-  coverNote  String?
-  resumeUrl  String?
-  appliedAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
+  id                String            @id @default(cuid())
+  userId            String
+  user              AppUser           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId         String
+  listing           Listing           @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  status            ApplicationStatus @default(applied)
+  coverNote         String?
+  resumeUrl         String?
+  interviewAt       DateTime?
+  interviewTimezone String?
+  meetingUrl        String?
+  employerNote      String?
+  candidateNote     String?
+  offerLetterUrl    String?
+  contractUrl       String?
+  withdrawnAt       DateTime?
+  appliedAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   @@unique([userId, listingId])
   @@index([userId])
@@ -451,12 +591,12 @@ model VerificationToken {
 }
 
 model PasswordResetToken {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   userId    String
-  token     String   @unique
+  token     String    @unique
   expiresAt DateTime
   usedAt    DateTime?
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
 
   @@index([userId])
   @@index([token])
@@ -466,7 +606,7 @@ model Notification {
   id        String   @id @default(cuid())
   userId    String
   user      AppUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      String   // new_match | price_drop | opportunity_reminder | system | welcome
+  type      String // new_match | price_drop | opportunity_reminder | system | welcome
   title     String
   body      String
   link      String?
@@ -479,11 +619,11 @@ model Notification {
 }
 
 model PriceHistory {
-  id        String   @id @default(cuid())
-  listingId String
-  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  price     Float
-  currency  String   @default("USD")
+  id         String   @id @default(cuid())
+  listingId  String
+  listing    Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  price      Float
+  currency   String   @default("USD")
   recordedAt DateTime @default(now())
 
   @@index([listingId])
@@ -495,20 +635,20 @@ model PriceHistory {
 // ---------------------------------------------------------------------------
 
 model Review {
-  id        String   @id @default(cuid())
+  id        String       @id @default(cuid())
   userId    String
-  user      AppUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user      AppUser      @relation(fields: [userId], references: [id], onDelete: Cascade)
   listingId String
-  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  rating    Int      // 1-5
+  listing   Listing      @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  rating    Int // 1-5
   title     String?
   body      String?
-  helpful   Int      @default(0)
+  helpful   Int          @default(0)
   replies   Reply[]
   votes     ReviewVote[]
-  reports   Report[]   @relation("ReviewReports")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  reports   Report[]     @relation("ReviewReports")
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
 
   @@unique([userId, listingId])
   @@index([listingId])
@@ -545,7 +685,7 @@ model ReviewVote {
   review    Review   @relation(fields: [reviewId], references: [id], onDelete: Cascade)
   userId    String
   user      AppUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  value     Int      // 1 = upvote, -1 = downvote
+  value     Int // 1 = upvote, -1 = downvote
   createdAt DateTime @default(now())
 
   @@unique([userId, reviewId])
@@ -560,7 +700,7 @@ model Report {
   review    Review?  @relation("ReviewReports", fields: [reviewId], references: [id], onDelete: Cascade)
   replyId   String?
   reply     Reply?   @relation("ReplyReports", fields: [replyId], references: [id], onDelete: Cascade)
-  reason    String   // spam | harassment | misinformation | other
+  reason    String // spam | harassment | misinformation | other
   details   String?
   status    String   @default("pending") // pending | reviewed | dismissed
   createdAt DateTime @default(now())
@@ -581,8 +721,8 @@ model Subscription {
   user                 AppUser   @relation(fields: [userId], references: [id], onDelete: Cascade)
   stripeSubscriptionId String    @unique
   stripePriceId        String
-  status               String    // active | past_due | canceled | trialing | incomplete
-  plan                 String    // pro_monthly | pro_yearly
+  status               String // active | past_due | canceled | trialing | incomplete
+  plan                 String // pro_monthly | pro_yearly
   currentPeriodStart   DateTime
   currentPeriodEnd     DateTime
   cancelAtPeriodEnd    Boolean   @default(false)
@@ -602,10 +742,10 @@ model Subscription {
 
 model AuditLog {
   id        String   @id @default(cuid())
-  actor     String   // admin email or "system"
-  action    String   // e.g. "user.ban", "review.delete", "listing.approve"
-  target    String?  // target entity id
-  details   Json?    // extra context
+  actor     String // admin email or "system"
+  action    String // e.g. "user.ban", "review.delete", "listing.approve"
+  target    String? // target entity id
+  details   Json? // extra context
   createdAt DateTime @default(now())
 
   @@index([actor])
@@ -634,7 +774,7 @@ model UserActivity {
   id        String   @id @default(cuid())
   userId    String
   user      AppUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  type      String   // review | reply | save | follow | badge | enroll | complete
+  type      String // review | reply | save | follow | badge | enroll | complete
   message   String
   link      String?
   meta      Json?
@@ -648,7 +788,7 @@ model UserBadge {
   id        String   @id @default(cuid())
   userId    String
   user      AppUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  badge     String   // badge slug: first_review, five_reviews, first_save, explorer, etc.
+  badge     String // badge slug: first_review, five_reviews, first_save, explorer, etc.
   awardedAt DateTime @default(now())
 
   @@unique([userId, badge])
@@ -656,17 +796,17 @@ model UserBadge {
 }
 
 model LearningProgress {
-  id          String   @id @default(cuid())
+  id          String    @id @default(cuid())
   userId      String
-  user        AppUser  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        AppUser   @relation(fields: [userId], references: [id], onDelete: Cascade)
   listingId   String
-  listing     Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  status      String   @default("enrolled") // enrolled | in_progress | completed | dropped
-  progress    Int      @default(0) // 0-100 percentage
-  startedAt   DateTime @default(now())
+  listing     Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  status      String    @default("enrolled") // enrolled | in_progress | completed | dropped
+  progress    Int       @default(0) // 0-100 percentage
+  startedAt   DateTime  @default(now())
   completedAt DateTime?
   notes       String?
-  updatedAt   DateTime @updatedAt
+  updatedAt   DateTime  @updatedAt
 
   @@unique([userId, listingId])
   @@index([userId])

@@ -182,6 +182,19 @@ function PricingContent() {
         </div>
       </div>
 
+      <div className="mx-auto mt-8 max-w-4xl rounded-2xl border bg-muted/30 p-6 text-center">
+        <h2 className="text-lg font-semibold">Business, school, and partner plans</h2>
+        <p className="mx-auto mt-2 max-w-2xl text-sm text-muted-foreground">
+          Organizations can request posting, review, sponsored placement, and Deal Program access. EDU Passport activates these plans manually while the marketplace is being validated.
+        </p>
+        <a
+          href={`mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent("Organization access for EDU Passport")}`}
+          className="mt-4 inline-flex text-sm font-medium text-primary hover:underline"
+        >
+          Contact EDU Passport for organization access
+        </a>
+      </div>
+
       {/* FAQ / note */}
       <div className="text-center mt-12">
         <p className="text-sm text-muted-foreground max-w-md mx-auto">

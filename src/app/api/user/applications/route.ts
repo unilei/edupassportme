@@ -4,6 +4,50 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { isProUser } from "@/lib/pro";
 import { activeListingWhere } from "@/lib/listing-visibility";
+import type { Prisma } from "@/generated/prisma/client";
+
+const userEditableApplicationStatuses = [
+  "draft",
+  "applied",
+  "under_review",
+  "shortlisted",
+  "screening",
+  "interview_scheduled",
+  "interviewing",
+  "decision_pending",
+  "offer_accepted",
+  "rejected",
+  "offer_declined",
+  "withdrawn",
+] as const;
+
+const optionalApplicationStringFields = [
+  "interviewTimezone",
+  "meetingUrl",
+  "candidateNote",
+] as const;
+
+const employerManagedApplicationFields = [
+  "employerNote",
+  "offerLetterUrl",
+  "contractUrl",
+] as const;
+
+type ApplicationPatchBody = {
+  applicationId?: unknown;
+  status?: unknown;
+  interviewAt?: unknown;
+} & Partial<Record<(typeof optionalApplicationStringFields)[number], unknown>>;
+
+function hasOwn<T extends string>(body: ApplicationPatchBody, field: T) {
+  return Object.prototype.hasOwnProperty.call(body, field);
+}
+
+function normalizeOptionalString(value: unknown) {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
 
 // GET: List user's applications
 export async function GET() {
@@ -98,21 +142,55 @@ export async function PATCH(request: NextRequest) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const body = await request.json();
-  const { applicationId, status } = body as { applicationId?: string; status?: string };
+  const body = await request.json() as ApplicationPatchBody;
+  const applicationId = typeof body.applicationId === "string" ? body.applicationId : undefined;
+  const status = typeof body.status === "string" ? body.status : undefined;
 
   if (!applicationId || !status) {
     return NextResponse.json({ error: "applicationId and status required" }, { status: 400 });
   }
 
-  const validStatuses = ["draft", "applied", "viewed", "interview", "offered", "rejected", "withdrawn"];
-  if (!validStatuses.includes(status)) {
+  if (!userEditableApplicationStatuses.includes(status as (typeof userEditableApplicationStatuses)[number])) {
     return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+  }
+
+  for (const field of employerManagedApplicationFields) {
+    if (Object.prototype.hasOwnProperty.call(body, field)) {
+      return NextResponse.json(
+        { error: `${field} is managed by EDU Passport or the employer` },
+        { status: 400 },
+      );
+    }
+  }
+
+  const updateData: Record<string, string | Date | null> = { status };
+
+  for (const field of optionalApplicationStringFields) {
+    if (hasOwn(body, field)) {
+      updateData[field] = normalizeOptionalString(body[field]);
+    }
+  }
+
+  if (hasOwn(body, "interviewAt")) {
+    const value = body.interviewAt;
+    if (typeof value === "string" && value.trim()) {
+      const interviewAt = new Date(value);
+      if (Number.isNaN(interviewAt.getTime())) {
+        return NextResponse.json({ error: "Invalid interviewAt" }, { status: 400 });
+      }
+      updateData.interviewAt = interviewAt;
+    } else {
+      updateData.interviewAt = null;
+    }
+  }
+
+  if (status === "withdrawn") {
+    updateData.withdrawnAt = new Date();
   }
 
   const application = await prisma.application.updateMany({
     where: { id: applicationId, userId },
-    data: { status: status as "draft" | "applied" | "viewed" | "interview" | "offered" | "rejected" | "withdrawn" },
+    data: updateData as unknown as Prisma.ApplicationUpdateManyMutationInput,
   });
 
   if (application.count === 0) {

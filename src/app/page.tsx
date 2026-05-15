@@ -88,11 +88,11 @@ async function HomeContent() {
           <div>
             <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
               <Target className="h-3.5 w-3.5" />
-              From discovery to done
+              Marketplace to workspace
             </div>
-            <h2 className="text-2xl font-bold">Build a focused action list from every opportunity you save.</h2>
+            <h2 className="text-2xl font-bold">Turn marketplace discovery into a focused opportunity workflow.</h2>
             <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Save courses, jobs, events, and deals, then turn them into tracked next actions with priority, deadlines, reminders, and fit-based recommendations.
+              Browse learning, career, event, and partner opportunities, then use Workspace to track priority, status, deadlines, applications, and reminders.
             </p>
             <div className="mt-5 flex flex-wrap gap-3">
               <Link href="/workspace" className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">

@@ -1,5 +1,12 @@
 import { describe, it, expect } from "vitest";
-import { stripHtml, normalizeWhitespace, sanitizeText, isValidEmail, sanitizeSlug } from "@/lib/sanitize";
+import {
+  stripHtml,
+  normalizeWhitespace,
+  sanitizeText,
+  safeJsonScript,
+  isValidEmail,
+  sanitizeSlug,
+} from "@/lib/sanitize";
 
 describe("sanitize", () => {
   describe("stripHtml", () => {
@@ -32,6 +39,19 @@ describe("sanitize", () => {
     it("caps length", () => {
       const long = "a".repeat(100);
       expect(sanitizeText(long, 10)).toBe("a".repeat(10));
+    });
+  });
+
+  describe("safeJsonScript", () => {
+    it("escapes script-breaking characters in JSON-LD payloads", () => {
+      const serialized = safeJsonScript({
+        title: '</script><script>alert("xss")</script>',
+        body: "A & B",
+      });
+
+      expect(serialized).not.toContain("</script>");
+      expect(serialized).toContain("\\u003c/script\\u003e");
+      expect(serialized).toContain("\\u0026");
     });
   });
 

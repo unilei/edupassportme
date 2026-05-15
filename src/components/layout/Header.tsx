@@ -17,6 +17,7 @@ const navKeys = [
   { href: "/events", key: "nav.events" },
   { href: "/deals", key: "nav.deals" },
   { href: "/category", key: "nav.directory" },
+  { href: "/submit-opportunity", key: "nav.submitOpportunity" },
 ];
 
 function UserMenu() {

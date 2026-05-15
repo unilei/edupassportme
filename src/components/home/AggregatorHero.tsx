@@ -8,10 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 const verticals = [
-  { key: "courses", label: "Courses", icon: GraduationCap, placeholder: "Search courses, certifications, programs..." },
-  { key: "jobs", label: "Jobs", icon: Briefcase, placeholder: "Search education jobs, teaching positions..." },
+  { key: "courses", label: "Courses", icon: GraduationCap, placeholder: "Search courses, certificates, training..." },
+  { key: "jobs", label: "Jobs", icon: Briefcase, placeholder: "Search education jobs, internships, roles..." },
   { key: "events", label: "Events", icon: Calendar, placeholder: "Search conferences, workshops, webinars..." },
-  { key: "deals", label: "Deals", icon: Tag, placeholder: "Search deals, discounts, free trials..." },
+  { key: "deals", label: "Deals", icon: Tag, placeholder: "Search partner deals, discounts, tools..." },
 ] as const;
 
 export function AggregatorHero() {
@@ -41,14 +41,14 @@ export function AggregatorHero() {
         {/* Badge */}
         <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6 border border-primary/20">
           <Sparkles className="h-4 w-4" />
-          <span>Student Opportunity Workspace</span>
+          <span>Education Opportunity Marketplace</span>
         </div>
 
         <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight mb-4 text-balance">
-          Find the right student opportunities. Keep every next step moving.
+          Find education opportunities, then keep every next step moving.
         </h1>
         <p className="text-muted-foreground text-lg sm:text-xl mb-10 max-w-2xl mx-auto text-balance">
-          Search courses, entry roles, education events, and student deals, then track deadlines and next actions in one workspace.
+          Search courses, jobs, events, and partner deals, then save, apply, register, redeem, and track progress in one workspace.
         </p>
 
         {/* Vertical tabs */}
@@ -99,9 +99,9 @@ export function AggregatorHero() {
               Open Workspace
             </Button>
           </Link>
-          <Link href="/profile">
+          <Link href="/submit-opportunity">
             <Button size="lg" variant="ghost" className="h-11 px-6">
-              Tune Preferences
+              Submit Opportunity
             </Button>
           </Link>
         </div>
@@ -109,7 +109,7 @@ export function AggregatorHero() {
         {/* Popular searches */}
         <div className="mt-6 flex flex-wrap justify-center gap-2">
           <span className="text-sm text-muted-foreground">Popular:</span>
-          {["Internship prep", "Scholarships", "Student discounts", "Career events"].map((term) => (
+          {["Teaching jobs", "Career events", "Education discounts", "Certificate courses"].map((term) => (
             <button
               key={term}
               onClick={() => { setQuery(term); router.push(`/search?q=${encodeURIComponent(term)}`); }}

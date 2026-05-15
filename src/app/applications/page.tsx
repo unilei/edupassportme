@@ -27,14 +27,41 @@ interface ApplicationItem {
 const statusColors: Record<string, string> = {
   draft: "bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300",
   applied: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
-  viewed: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
-  interview: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
-  offered: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+  under_review: "bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300",
+  shortlisted: "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300",
+  screening: "bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-300",
+  interview_scheduled: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+  interviewing: "bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300",
+  decision_pending: "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-300",
+  offer_extended: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+  offer_accepted: "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300",
+  hired: "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300",
   rejected: "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300",
-  withdrawn: "bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400",
+  offer_declined: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
+  withdrawn: "bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
+  position_closed: "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300",
 };
 
-const applicationStatuses = ["draft", "applied", "viewed", "interview", "offered", "rejected", "withdrawn"];
+const applicationStatuses = [
+  "draft",
+  "applied",
+  "under_review",
+  "shortlisted",
+  "screening",
+  "interview_scheduled",
+  "interviewing",
+  "decision_pending",
+  "offer_accepted",
+  "rejected",
+  "offer_declined",
+  "withdrawn",
+];
+
+const summaryStatuses = ["applied", "under_review", "interview_scheduled", "offer_extended"];
+
+function formatStatusLabel(status: string) {
+  return status.replace(/_/g, " ");
+}
 
 function ApplicationsContent() {
   const { data: session, status: authStatus } = useSession();
@@ -128,10 +155,10 @@ function ApplicationsContent() {
 
       {/* Status summary */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
-        {["applied", "viewed", "interview", "offered"].map((s) => (
+        {summaryStatuses.map((s) => (
           <div key={s} className="rounded-xl border p-3 text-center">
             <p className="text-lg font-bold">{applications.filter((a) => a.status === s).length}</p>
-            <p className="text-xs text-muted-foreground capitalize">{s}</p>
+            <p className="text-xs text-muted-foreground capitalize">{formatStatusLabel(s)}</p>
           </div>
         ))}
       </div>
@@ -169,7 +196,7 @@ function ApplicationsContent() {
                       aria-label={`Status for ${app.listing.title}`}
                     >
                       {applicationStatuses.map((status) => (
-                        <option key={status} value={status}>{status}</option>
+                        <option key={status} value={status}>{formatStatusLabel(status)}</option>
                       ))}
                     </select>
                   </div>

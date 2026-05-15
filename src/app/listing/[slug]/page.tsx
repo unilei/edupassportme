@@ -6,6 +6,7 @@ import type { Metadata } from "next";
 import { prisma } from "@/lib/prisma";
 import { authOptions } from "@/lib/auth";
 import { createMetadata, jsonLdCourse, jsonLdJobPosting, jsonLdEvent } from "@/lib/metadata";
+import { safeJsonScript } from "@/lib/sanitize";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { ListingCard } from "@/components/listing/ListingCard";
 import { SaveButtonWrapper } from "@/components/listing/SaveButtonWrapper";
@@ -269,7 +270,7 @@ export default async function ListingDetailPage({ params }: PageProps) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(jsonLdCourse({
+            __html: safeJsonScript(jsonLdCourse({
               title: listing.title,
               description: listing.description,
               url: listing.url,
@@ -289,7 +290,7 @@ export default async function ListingDetailPage({ params }: PageProps) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(jsonLdJobPosting({
+            __html: safeJsonScript(jsonLdJobPosting({
               title: listing.title,
               description: listing.description,
               url: listing.url,
@@ -306,7 +307,7 @@ export default async function ListingDetailPage({ params }: PageProps) {
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{
-            __html: JSON.stringify(jsonLdEvent({
+            __html: safeJsonScript(jsonLdEvent({
               title: listing.title,
               description: listing.description,
               url: listing.url,
