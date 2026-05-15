@@ -14,7 +14,9 @@ test.describe("Search", () => {
 
   test("should display results when searching", async ({ page }) => {
     await page.goto("/search?q=machine");
-    await expect(page.getByText("Machine Learning Specialization")).toBeVisible({ timeout: 10_000 });
+    await expect(page.locator("article").filter({ hasText: "Machine Learning Specialization" }).first()).toBeVisible({
+      timeout: 10_000,
+    });
   });
 
   test("should show search input on homepage", async ({ page }) => {
