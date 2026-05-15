@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   listingSubmissionCreate: vi.fn(),
   listingSubmissionFindMany: vi.fn(),
   listingSubmissionFindFirst: vi.fn(),
+  listingSubmissionCount: vi.fn(),
   rateLimit: vi.fn(),
 }));
 
@@ -29,6 +30,7 @@ vi.mock("@/lib/prisma", () => ({
       create: mocks.listingSubmissionCreate,
       findMany: mocks.listingSubmissionFindMany,
       findFirst: mocks.listingSubmissionFindFirst,
+      count: mocks.listingSubmissionCount,
     },
   },
 }));
@@ -52,10 +54,24 @@ describe("/api/marketplace/submissions", () => {
     vi.clearAllMocks();
     mocks.getServerSession.mockResolvedValue({ user: { id: "user_1" } });
     mocks.organizationFindFirst.mockResolvedValue(null);
-    mocks.organizationCreate.mockResolvedValue({ id: "org_1", name: "Example School" });
+    mocks.organizationCreate.mockResolvedValue({
+      id: "org_1",
+      name: "Example School",
+      status: "pending",
+      plan: "free",
+      canPostJobs: true,
+      canPostEvents: true,
+      canPostDeals: false,
+      canSponsor: false,
+      jobPostLimit: 3,
+      eventPostLimit: 3,
+      dealPostLimit: 0,
+      sponsoredLimit: 0,
+    });
     mocks.listingSubmissionCreate.mockResolvedValue({ id: "sub_1", status: "pending_review" });
     mocks.listingSubmissionFindMany.mockResolvedValue([]);
     mocks.listingSubmissionFindFirst.mockResolvedValue(null);
+    mocks.listingSubmissionCount.mockResolvedValue(0);
     mocks.rateLimit.mockReturnValue({ success: true, remaining: 9 });
   });
 
@@ -112,7 +128,19 @@ describe("/api/marketplace/submissions", () => {
         ownerId: "user_1",
         name: "Example School",
       },
-      select: { id: true },
+      select: {
+        id: true,
+        status: true,
+        plan: true,
+        canPostJobs: true,
+        canPostEvents: true,
+        canPostDeals: true,
+        canSponsor: true,
+        jobPostLimit: true,
+        eventPostLimit: true,
+        dealPostLimit: true,
+        sponsoredLimit: true,
+      },
     });
     expect(mocks.organizationCreate).toHaveBeenCalledWith({
       data: {
@@ -120,6 +148,26 @@ describe("/api/marketplace/submissions", () => {
         type: "school",
         website: "https://example.edu/",
         ownerId: "user_1",
+      },
+      select: {
+        id: true,
+        status: true,
+        plan: true,
+        canPostJobs: true,
+        canPostEvents: true,
+        canPostDeals: true,
+        canSponsor: true,
+        jobPostLimit: true,
+        eventPostLimit: true,
+        dealPostLimit: true,
+        sponsoredLimit: true,
+      },
+    });
+    expect(mocks.listingSubmissionCount).toHaveBeenCalledWith({
+      where: {
+        organizationId: "org_1",
+        type: "job",
+        status: { in: ["pending_review", "needs_changes", "approved", "published"] },
       },
     });
     expect(mocks.listingSubmissionCreate).toHaveBeenCalledWith({
@@ -173,6 +221,122 @@ describe("/api/marketplace/submissions", () => {
 
     expect(res.status).toBe(409);
     expect(await res.json()).toEqual({ error: "You already submitted this opportunity." });
+    expect(mocks.listingSubmissionCreate).not.toHaveBeenCalled();
+  });
+
+  it("rejects organization-backed deals before Deal Program approval", async () => {
+    const res = await POST(
+      postRequest({
+        type: "deal",
+        title: "Education software discount",
+        description: "Discounted software access for verified education users.",
+        url: "https://example.org/deals/education-software",
+        organizationName: "Example Vendor",
+        organizationType: "vendor",
+      }),
+    );
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({
+      error: "Deal submissions require an approved partner organization.",
+    });
+    expect(mocks.organizationCreate).not.toHaveBeenCalled();
+    expect(mocks.listingSubmissionCreate).not.toHaveBeenCalled();
+  });
+
+  it("rejects deal submissions without an organization", async () => {
+    const res = await POST(
+      postRequest({
+        type: "deal",
+        title: "Education software discount",
+        description: "Discounted software access for verified education users.",
+        url: "https://example.org/deals/education-software",
+      }),
+    );
+
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({
+      error: "Organization name is required for deal submissions.",
+    });
+    expect(mocks.organizationFindFirst).not.toHaveBeenCalled();
+    expect(mocks.listingSubmissionCreate).not.toHaveBeenCalled();
+  });
+
+  it("allows approved partner organizations to submit deals within quota", async () => {
+    mocks.organizationFindFirst.mockResolvedValue({
+      id: "org_partner",
+      status: "active",
+      plan: "partner",
+      canPostJobs: true,
+      canPostEvents: true,
+      canPostDeals: true,
+      canSponsor: true,
+      jobPostLimit: 100,
+      eventPostLimit: 100,
+      dealPostLimit: 100,
+      sponsoredLimit: 10,
+    });
+
+    const res = await POST(
+      postRequest({
+        type: "deal",
+        title: "Education software discount",
+        description: "Discounted software access for verified education users.",
+        url: "https://example.org/deals/education-software",
+        organizationName: "Campus Deals",
+        organizationType: "partner",
+      }),
+    );
+
+    expect(res.status).toBe(201);
+    expect(mocks.listingSubmissionCount).toHaveBeenCalledWith({
+      where: {
+        organizationId: "org_partner",
+        type: "deal",
+        status: { in: ["pending_review", "needs_changes", "approved", "published"] },
+      },
+    });
+    expect(mocks.listingSubmissionCreate).toHaveBeenCalledWith({
+      data: expect.objectContaining({
+        submittedById: "user_1",
+        organizationId: "org_partner",
+        type: "deal",
+        title: "Education software discount",
+      }),
+      select: expect.objectContaining({ id: true, status: true }),
+    });
+  });
+
+  it("rejects organization submissions after the type quota is reached", async () => {
+    mocks.organizationFindFirst.mockResolvedValue({
+      id: "org_1",
+      status: "active",
+      plan: "free",
+      canPostJobs: true,
+      canPostEvents: true,
+      canPostDeals: false,
+      canSponsor: false,
+      jobPostLimit: 3,
+      eventPostLimit: 3,
+      dealPostLimit: 0,
+      sponsoredLimit: 0,
+    });
+    mocks.listingSubmissionCount.mockResolvedValue(3);
+
+    const res = await POST(
+      postRequest({
+        type: "job",
+        title: "STEM Program Manager",
+        description: "Lead STEM programming for high school students.",
+        url: "https://example.org/jobs/stem-manager",
+        organizationName: "Example School",
+      }),
+    );
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({
+      error: "Organization has reached its job posting limit.",
+    });
     expect(mocks.listingSubmissionCreate).not.toHaveBeenCalled();
   });
 

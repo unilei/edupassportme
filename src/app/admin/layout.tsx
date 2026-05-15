@@ -4,13 +4,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { SessionProvider } from "next-auth/react";
-import { LayoutDashboard, Inbox, FolderOpen, Globe, Tag, RefreshCw, LogOut, DollarSign, Megaphone, TrendingUp, Users, ShieldCheck, MessageSquare, ScrollText, Flag, CreditCard } from "lucide-react";
+import { LayoutDashboard, Inbox, FolderOpen, Globe, Tag, RefreshCw, LogOut, DollarSign, Megaphone, TrendingUp, Users, ShieldCheck, MessageSquare, ScrollText, Flag, CreditCard, Building2, Handshake } from "lucide-react";
 import { signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 
 const sidebarLinks = [
   { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
   { href: "/admin/submissions", label: "Submissions", icon: Inbox },
+  { href: "/admin/organizations", label: "Organizations", icon: Building2 },
+  { href: "/admin/deal-program", label: "Deal Program", icon: Handshake },
   { href: "/admin/categories", label: "Categories", icon: FolderOpen },
   { href: "/admin/items", label: "Items", icon: Globe },
   { href: "/admin/tags", label: "Tags", icon: Tag },

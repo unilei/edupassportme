@@ -163,6 +163,8 @@ model Listing {
   compliance       Json?
   providerId       String
   provider         Provider           @relation(fields: [providerId], references: [id])
+  organizationId   String?
+  organization     Organization?      @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   categoryId       String?
   category         Category?          @relation(fields: [categoryId], references: [id])
   offers           ListingOffer[]
@@ -180,6 +182,7 @@ model Listing {
 
   @@unique([providerId, externalId])
   @@index([type])
+  @@index([organizationId])
   @@index([categoryId])
   @@index([featured])
   @@index([createdAt])
@@ -384,9 +387,20 @@ model Organization {
   website                 String?
   description             String?
   status                  OrganizationStatus       @default(pending)
+  plan                    String                   @default("free")
+  canPostJobs             Boolean                  @default(true)
+  canPostEvents           Boolean                  @default(true)
+  canPostDeals            Boolean                  @default(false)
+  canSponsor              Boolean                  @default(false)
+  jobPostLimit            Int                      @default(3)
+  eventPostLimit          Int                      @default(3)
+  dealPostLimit           Int                      @default(0)
+  sponsoredLimit          Int                      @default(0)
   verifiedAt              DateTime?
   ownerId                 String
   owner                   AppUser                  @relation("OrganizationOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  listings                Listing[]
+  sponsoredListings       SponsoredListing[]
   submissions             ListingSubmission[]
   dealProgramApplications DealProgramApplication[]
   createdAt               DateTime                 @default(now())
@@ -510,23 +524,26 @@ model ClickEvent {
 // ---------------------------------------------------------------------------
 
 model SponsoredListing {
-  id          String    @id @default(cuid())
-  listingId   String
-  listing     Listing   @relation(fields: [listingId], references: [id], onDelete: Cascade)
-  position    String // hero | feed | sidebar
-  label       String    @default("Sponsored")
-  budget      Float     @default(0)
-  spent       Float     @default(0)
-  impressions Int       @default(0)
-  clicks      Int       @default(0)
-  cpc         Float? // cost per click
-  isActive    Boolean   @default(true)
-  startDate   DateTime  @default(now())
-  endDate     DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id             String        @id @default(cuid())
+  listingId      String
+  listing        Listing       @relation(fields: [listingId], references: [id], onDelete: Cascade)
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  position       String // hero | feed | sidebar
+  label          String        @default("Sponsored")
+  budget         Float         @default(0)
+  spent          Float         @default(0)
+  impressions    Int           @default(0)
+  clicks         Int           @default(0)
+  cpc            Float? // cost per click
+  isActive       Boolean       @default(true)
+  startDate      DateTime      @default(now())
+  endDate        DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
 
   @@index([position, isActive])
+  @@index([organizationId])
   @@index([startDate])
   @@index([endDate])
 }

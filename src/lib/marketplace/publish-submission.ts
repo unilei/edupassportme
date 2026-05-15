@@ -16,6 +16,7 @@ export type PublishableSubmission = {
   expiresAt: Date | null;
   priceLabel: string | null;
   couponCode: string | null;
+  organizationId?: string | null;
   metadata: Prisma.JsonValue | null;
 };
 
@@ -52,6 +53,7 @@ export function buildListingDataFromSubmission(
     couponCode: submission.couponCode,
     country: submission.country,
     region: submission.region,
+    organizationId: submission.organizationId ?? undefined,
     metadata:
       submission.metadata === null ? undefined : (submission.metadata as Prisma.InputJsonValue),
     providerId,

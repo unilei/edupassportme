@@ -10,6 +10,7 @@ export async function GET() {
   const sponsored = await prisma.sponsoredListing.findMany({
     orderBy: { createdAt: "desc" },
     include: {
+      organization: { select: { id: true, name: true, plan: true } },
       listing: {
         select: { title: true, slug: true, type: true, provider: { select: { name: true } } },
       },
@@ -26,21 +27,33 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { listingId, position, budget, cpc, endDate } = body as {
+    const { listingId, position, budget, cpc, endDate, organizationId } = body as {
       listingId: string;
       position: string;
       budget?: number;
       cpc?: number;
       endDate?: string;
+      organizationId?: string;
     };
 
     if (!listingId || !position) {
       return NextResponse.json({ error: "listingId and position required" }, { status: 400 });
     }
 
+    if (organizationId) {
+      const organization = await prisma.organization.findUnique({
+        where: { id: organizationId },
+        select: { id: true },
+      });
+      if (!organization) {
+        return NextResponse.json({ error: "Organization not found" }, { status: 400 });
+      }
+    }
+
     const sponsored = await prisma.sponsoredListing.create({
       data: {
         listingId,
+        organizationId: organizationId || null,
         position,
         budget: budget ?? 0,
         cpc: cpc ?? null,

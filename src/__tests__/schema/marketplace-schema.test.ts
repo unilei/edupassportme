@@ -19,11 +19,23 @@ describe("marketplace Prisma schema", () => {
     schemaBlock("model", "DealProgramApplication");
 
     const appUser = schemaBlock("model", "AppUser");
+    const organization = schemaBlock("model", "Organization");
+    const listing = schemaBlock("model", "Listing");
+    const sponsoredListing = schemaBlock("model", "SponsoredListing");
 
     expect(appUser).toMatch(/organizations\s+Organization\[\]\s+@relation\("OrganizationOwner"\)/);
     expect(appUser).toMatch(
       /listingSubmissions\s+ListingSubmission\[\]\s+@relation\("ListingSubmissionSubmitter"\)/,
     );
+    expect(organization).toMatch(/plan\s+String\s+@default\("free"\)/);
+    expect(organization).toMatch(/canPostDeals\s+Boolean\s+@default\(false\)/);
+    expect(organization).toMatch(/jobPostLimit\s+Int\s+@default\(3\)/);
+    expect(organization).toMatch(/listings\s+Listing\[\]/);
+    expect(listing).toMatch(/organizationId\s+String\?/);
+    expect(listing).toMatch(
+      /organization\s+Organization\?\s+@relation\(fields: \[organizationId\], references: \[id\], onDelete: SetNull\)/,
+    );
+    expect(sponsoredListing).toMatch(/organizationId\s+String\?/);
   });
 
   it("defines the richer application lifecycle fields", () => {

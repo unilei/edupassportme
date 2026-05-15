@@ -46,6 +46,7 @@ describe("publish submission helpers", () => {
         expiresAt: null,
         priceLabel: null,
         couponCode: null,
+        organizationId: "org_1",
         metadata: { submittedFrom: "public_form" },
       },
       "provider_1",
@@ -66,6 +67,7 @@ describe("publish submission helpers", () => {
       location: "New York, NY",
       country: "US",
       region: "NY",
+      organizationId: "org_1",
       metadata: { submittedFrom: "public_form" },
     });
     expect(data.publishedAt).toEqual(new Date("2026-05-15T10:30:00.000Z"));

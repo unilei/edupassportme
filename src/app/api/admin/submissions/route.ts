@@ -120,6 +120,7 @@ export async function PATCH(req: NextRequest) {
       expiresAt: true,
       priceLabel: true,
       couponCode: true,
+      organizationId: true,
       metadata: true,
       status: true,
       publishedListingId: true,

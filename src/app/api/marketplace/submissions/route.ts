@@ -2,6 +2,11 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  evaluateSubmissionQuota,
+  getMarketplacePlanDefaults,
+  getOrganizationTypePermission,
+} from "@/lib/marketplace/permissions";
 import { normalizeListingSubmissionInput } from "@/lib/marketplace/submissions";
 import { rateLimit } from "@/lib/rate-limit";
 
@@ -70,16 +75,44 @@ export async function POST(request: NextRequest) {
     );
   }
 
+  if (data.type === "deal" && !data.organizationName) {
+    return NextResponse.json(
+      { error: "Organization name is required for deal submissions." },
+      { status: 400 },
+    );
+  }
+
   let organizationId: string | null = null;
 
   if (data.organizationName) {
+    const organizationSelect = {
+      id: true,
+      status: true,
+      plan: true,
+      canPostJobs: true,
+      canPostEvents: true,
+      canPostDeals: true,
+      canSponsor: true,
+      jobPostLimit: true,
+      eventPostLimit: true,
+      dealPostLimit: true,
+      sponsoredLimit: true,
+    } as const;
+
     const existing = await prisma.organization.findFirst({
       where: {
         ownerId: userId,
         name: data.organizationName,
       },
-      select: { id: true },
+      select: organizationSelect,
     });
+
+    if (!existing) {
+      const permission = getOrganizationTypePermission(getMarketplacePlanDefaults("free"), data.type);
+      if (!permission.allowed) {
+        return NextResponse.json({ error: permission.reason }, { status: 403 });
+      }
+    }
 
     const organization =
       existing ??
@@ -90,7 +123,26 @@ export async function POST(request: NextRequest) {
           website: data.organizationWebsite ?? null,
           ownerId: userId,
         },
+        select: organizationSelect,
       }));
+
+    const permission = getOrganizationTypePermission(organization, data.type);
+    if (!permission.allowed) {
+      return NextResponse.json({ error: permission.reason }, { status: 403 });
+    }
+
+    const activeSubmissionCount = await prisma.listingSubmission.count({
+      where: {
+        organizationId: organization.id,
+        type: data.type,
+        status: { in: ["pending_review", "needs_changes", "approved", "published"] },
+      },
+    });
+    const quota = evaluateSubmissionQuota(organization, data.type, activeSubmissionCount);
+    if (!quota.allowed) {
+      return NextResponse.json({ error: quota.reason }, { status: 403 });
+    }
+
     organizationId = organization.id;
   }
 

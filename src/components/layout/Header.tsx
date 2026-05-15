@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { Menu, X, Heart, Sparkles, User, LogOut, Crown, FileText, ChevronDown, Target } from "lucide-react";
+import { Menu, X, Heart, Sparkles, User, LogOut, Crown, FileText, ChevronDown, Target, Building2, Handshake } from "lucide-react";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { LocaleSwitcher } from "@/components/shared/LocaleSwitcher";
@@ -18,6 +18,7 @@ const navKeys = [
   { href: "/deals", key: "nav.deals" },
   { href: "/category", key: "nav.directory" },
   { href: "/submit-opportunity", key: "nav.submitOpportunity" },
+  { href: "/deal-program", key: "nav.dealProgram" },
 ];
 
 function UserMenu() {
@@ -81,6 +82,13 @@ function UserMenu() {
           </div>
 
           <Link
+            href="/business"
+            className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent transition-colors mx-1 rounded-lg"
+            onClick={() => setOpen(false)}
+          >
+            <Building2 className="h-4 w-4 text-emerald-600" /> {t("nav.business")}
+          </Link>
+          <Link
             href="/workspace"
             className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent transition-colors mx-1 rounded-lg"
             onClick={() => setOpen(false)}
@@ -107,6 +115,13 @@ function UserMenu() {
             onClick={() => setOpen(false)}
           >
             <FileText className="h-4 w-4 text-blue-500" /> {t("nav.applications")}
+          </Link>
+          <Link
+            href="/deal-program"
+            className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent transition-colors mx-1 rounded-lg"
+            onClick={() => setOpen(false)}
+          >
+            <Handshake className="h-4 w-4 text-emerald-600" /> {t("nav.dealProgram")}
           </Link>
           <Link
             href="/profile"
