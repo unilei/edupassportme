@@ -5,6 +5,8 @@ import SignInPage from "@/app/auth/signin/page";
 const signInMock = vi.fn();
 const refreshMock = vi.fn();
 const pushMock = vi.fn();
+const useSearchParamsMock = vi.fn();
+const fetchMock = vi.fn();
 
 vi.mock("next-auth/react", () => ({
   signIn: (...args: unknown[]) => signInMock(...args),
@@ -15,7 +17,7 @@ vi.mock("next/navigation", () => ({
     push: pushMock,
     refresh: refreshMock,
   }),
-  useSearchParams: () => new URLSearchParams("callbackUrl=/workspace"),
+  useSearchParams: () => useSearchParamsMock(),
 }));
 
 describe("SignInPage post-login navigation", () => {
@@ -24,6 +26,9 @@ describe("SignInPage post-login navigation", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    useSearchParamsMock.mockReturnValue(new URLSearchParams("callbackUrl=/workspace"));
+    fetchMock.mockReset();
+    vi.stubGlobal("fetch", fetchMock);
     assignMock = vi.fn();
     Object.defineProperty(window, "location", {
       configurable: true,
@@ -52,5 +57,63 @@ describe("SignInPage post-login navigation", () => {
     });
     expect(pushMock).not.toHaveBeenCalled();
     expect(refreshMock).not.toHaveBeenCalled();
+  });
+
+  it("sends users without onboarding to the onboarding flow when no callback is provided", async () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams(""));
+    signInMock.mockResolvedValue({ ok: true, error: null });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        user: {
+          accountType: "organization",
+          role: "user",
+          profile: { onboardingCompletedAt: null },
+        },
+      }),
+    });
+
+    render(<SignInPage />);
+
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "org@example.invalid" },
+    });
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "ValidPass123!" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Sign In/i }));
+
+    await waitFor(() => {
+      expect(assignMock).toHaveBeenCalledWith("/onboarding");
+    });
+  });
+
+  it("sends completed partner users to the partner workspace when no callback is provided", async () => {
+    useSearchParamsMock.mockReturnValue(new URLSearchParams(""));
+    signInMock.mockResolvedValue({ ok: true, error: null });
+    fetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        user: {
+          accountType: "partner",
+          role: "user",
+          profile: { onboardingCompletedAt: "2026-05-16T00:00:00.000Z" },
+        },
+      }),
+    });
+
+    render(<SignInPage />);
+
+    fireEvent.change(screen.getByLabelText("Email"), {
+      target: { value: "partner@example.invalid" },
+    });
+    fireEvent.change(screen.getByLabelText("Password"), {
+      target: { value: "ValidPass123!" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Sign In/i }));
+
+    await waitFor(() => {
+      expect(assignMock).toHaveBeenCalledWith("/deal-program");
+    });
   });
 });

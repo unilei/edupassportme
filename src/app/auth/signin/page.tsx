@@ -7,10 +7,12 @@ import Link from "next/link";
 import { GraduationCap, Mail, Lock, Loader2, ArrowRight, Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { getPostLoginPath } from "@/lib/account-routing";
+import { normalizeAccountType } from "@/lib/account-types";
 
 function getSafeCallbackUrl(value: string | null) {
   if (!value || !value.startsWith("/") || value.startsWith("//")) {
-    return "/";
+    return null;
   }
   return value;
 }
@@ -59,7 +61,34 @@ export default function SignInPage() {
       return;
     }
 
-    window.location.assign(callbackUrl);
+    if (callbackUrl) {
+      window.location.assign(callbackUrl);
+      return;
+    }
+
+    try {
+      const profileRes = await fetch("/api/user/profile", { cache: "no-store" });
+      if (profileRes.ok) {
+        const body = await profileRes.json() as {
+          user?: {
+            role?: string | null;
+            accountType?: string | null;
+            profile?: { onboardingCompletedAt?: string | null } | null;
+          } | null;
+        };
+        const user = body.user;
+        window.location.assign(getPostLoginPath({
+          role: user?.role,
+          accountType: normalizeAccountType(user?.accountType),
+          onboardingCompletedAt: user?.profile?.onboardingCompletedAt ?? null,
+        }));
+        return;
+      }
+    } catch {
+      // Fall back to the public home page if the post-login profile lookup fails.
+    }
+
+    window.location.assign("/");
   };
 
   const handleResendVerification = async () => {

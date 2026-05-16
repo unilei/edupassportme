@@ -3,12 +3,14 @@
 import { useEffect, useState, useCallback, type Dispatch, type SetStateAction } from "react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { User, GraduationCap, Heart, Loader2, Check, Bell, Award, Users, BookOpen, Rss, Target } from "lucide-react";
+import { User, GraduationCap, Heart, Loader2, Check, Bell, Award, Users, BookOpen, Rss, Target, Building2, Handshake } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useFetch } from "@/hooks/useFetch";
 import { AuthRequired, AuthRequiredPrompt } from "@/components/auth/AuthRequired";
+import { getDefaultAccountPath } from "@/lib/account-routing";
+import { getSessionAccountType, type AccountType } from "@/lib/account-types";
 
 const EDUCATION_LEVELS = ["High School", "Undergraduate", "Graduate", "PhD", "Professional", "Self-learner"];
 
@@ -40,6 +42,7 @@ interface ProfileData {
     email: string;
     name: string | null;
     role: string;
+    accountType: AccountType;
     profile: {
       educationLevel: string | null;
       interests: string[];
@@ -52,7 +55,27 @@ interface ProfileData {
       notifyPriceDrop: boolean;
       notifyNewsletter: boolean;
     } | null;
+    organizations?: {
+      id: string;
+      name: string;
+      type: string;
+      status: string;
+      website: string | null;
+      description: string | null;
+    }[];
+    dealProgramRequests?: {
+      id: string;
+      status: string;
+      proposedOffer: string | null;
+      targetAudience: string | null;
+    }[];
     _count: { savedListings: number; savedSearches: number };
+  } | null;
+  profileCompletion: {
+    percent: number;
+    missing: string[];
+    onboardingCompleted: boolean;
+    nextPath: string;
   } | null;
 }
 
@@ -134,6 +157,8 @@ function ProfileContent() {
   const [authExpired, setAuthExpired] = useState(false);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState("");
+  const [profileCompletion, setProfileCompletion] = useState<ProfileData["profileCompletion"]>(null);
 
   // Form state
   const [name, setName] = useState("");
@@ -159,6 +184,7 @@ function ProfileContent() {
       .then((data: ProfileData) => {
         if (!data) return;
         setProfile(data.user);
+        setProfileCompletion(data.profileCompletion);
         if (data.user) {
           setName(data.user.name || "");
           setEducationLevel(data.user.profile?.educationLevel || "");
@@ -194,7 +220,8 @@ function ProfileContent() {
   const handleSave = async (completeOnboarding = false) => {
     setSaving(true);
     setSaved(false);
-    await fetch("/api/user/profile", {
+    setError("");
+    const res = await fetch("/api/user/profile", {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -210,10 +237,15 @@ function ProfileContent() {
         completeOnboarding,
       }),
     });
+    const data = await res.json().catch(() => ({})) as { error?: string; nextPath?: string };
     setSaving(false);
+    if (!res.ok) {
+      setError(data.error || "Unable to save profile.");
+      return;
+    }
     setSaved(true);
     if (completeOnboarding) {
-      router.push("/workspace");
+      router.push(data.nextPath || getDefaultAccountPath(getSessionAccountType(profile)));
       return;
     }
     setTimeout(() => setSaved(false), 2000);
@@ -241,6 +273,11 @@ function ProfileContent() {
     return null;
   }
 
+  const accountType = getSessionAccountType(profile);
+  const businessWorkspacePath = getDefaultAccountPath(accountType);
+  const businessIcon = accountType === "partner" ? Handshake : Building2;
+  const BusinessIcon = businessIcon;
+
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
       <div className="flex items-center gap-3 mb-6">
@@ -263,12 +300,71 @@ function ProfileContent() {
           <GraduationCap className="h-4 w-4 text-primary" />
           <span className="text-sm font-medium capitalize">{profile.role}</span>
         </div>
+        <div className="flex items-center gap-2 px-4 py-2 rounded-lg border bg-card">
+          <User className="h-4 w-4 text-primary" />
+          <span className="text-sm font-medium capitalize">{accountType}</span>
+        </div>
+        {profileCompletion ? (
+          <div className="flex items-center gap-2 px-4 py-2 rounded-lg border bg-card">
+            <Target className="h-4 w-4 text-primary" />
+            <span className="text-sm font-medium">{profileCompletion.percent}% complete</span>
+          </div>
+        ) : null}
       </div>
 
+      {accountType !== "individual" ? (
+        <div className="space-y-5 rounded-xl border bg-card p-5">
+          <div className="flex items-start gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
+              <BusinessIcon className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-semibold">
+                {accountType === "partner" ? "Partner profile" : "Organization profile"}
+              </h2>
+              <p className="text-sm text-muted-foreground">
+                {profile.organizations?.[0]?.name || "Complete setup to create your business identity."}
+              </p>
+            </div>
+          </div>
+
+          {profileCompletion ? (
+            <div className="space-y-2">
+              <div className="h-2 overflow-hidden rounded-full bg-muted">
+                <div className="h-full rounded-full bg-primary" style={{ width: `${profileCompletion.percent}%` }} />
+              </div>
+              {profileCompletion.missing.length > 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  Missing: {profileCompletion.missing.join(", ")}
+                </p>
+              ) : (
+                <p className="text-sm text-muted-foreground">Your account setup is complete.</p>
+              )}
+            </div>
+          ) : null}
+
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button asChild>
+              <Link href="/onboarding">Continue setup</Link>
+            </Button>
+            <Button asChild variant="outline">
+              <Link href={businessWorkspacePath}>
+                {accountType === "partner" ? "Open Deal Program" : "Open Business Workspace"}
+              </Link>
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <>
       {/* Social / Progress Quick Links */}
       <ProfileWidgets />
 
       <div className="space-y-6">
+        {error ? (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
+            {error}
+          </div>
+        ) : null}
         {/* Name */}
         <div className="space-y-2">
           <label className="text-sm font-medium">Display Name</label>
@@ -435,6 +531,8 @@ function ProfileContent() {
           </Button>
         </div>
       </div>
+        </>
+      )}
     </div>
   );
 }
