@@ -251,7 +251,7 @@ model Deal {
 // ---------------------------------------------------------------------------
 
 enum AccountType {
-  student
+  individual
   organization
   partner
 }
@@ -264,7 +264,7 @@ model AppUser {
   avatar               String?
   role                 String                   @default("user") // user | pro | admin
   tier                 String                   @default("free") // free | pro
-  accountType          AccountType              @default(student)
+  accountType          AccountType              @default(individual)
   proExpiresAt         DateTime?
   emailVerified        Boolean                  @default(false)
   banned               Boolean                  @default(false)

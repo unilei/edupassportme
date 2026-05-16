@@ -21,7 +21,7 @@ const INTEREST_OPTIONS = [
 
 const GOAL_OPTIONS = [
   "Internship-ready skills", "Scholarship planning", "Career switch",
-  "Graduate school prep", "Build a portfolio", "Find student discounts",
+  "Graduate school prep", "Build a portfolio", "Find education discounts",
   "Attend events", "Earn credentials",
 ];
 

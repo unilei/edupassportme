@@ -43,7 +43,7 @@ export function Footer() {
               <BrandLogo textClassName="text-lg" />
             </Link>
             <p className="text-sm text-muted-foreground max-w-sm leading-relaxed mb-6">
-              Find education opportunities across courses, jobs, events, and student deals, then keep every next step moving in one workspace.
+              Find education opportunities across courses, jobs, events, and partner deals, then keep every next step moving in one workspace.
             </p>
             <div className="flex items-center gap-3">
               {socialLinks.map((social) => {

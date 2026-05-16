@@ -18,7 +18,7 @@ export const metadata: Metadata = {
     template: `%s | ${SITE_NAME}`,
   },
   description:
-    "Find and manage education opportunities across courses, jobs, events, and student deals. Students track next steps while organizations submit listings and partner offers.",
+    "Find and manage education opportunities across courses, jobs, events, and partner deals. Individuals track next steps while organizations submit listings and partner offers.",
   metadataBase: new URL(siteUrl),
   manifest: "/manifest.json",
   icons: {

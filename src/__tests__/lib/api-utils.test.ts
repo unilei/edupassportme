@@ -13,6 +13,7 @@ import {
   apiError,
   apiSuccess,
   requireUser,
+  requireIndividualUser,
   requireAdmin,
   isAuthError,
   parsePagination,
@@ -73,6 +74,34 @@ describe("api-utils", () => {
       mockedGetSession.mockResolvedValue({ user: { id: "admin" } });
       const result = await requireUser();
       expect(isAuthError(result)).toBe(true);
+    });
+  });
+
+  describe("requireIndividualUser", () => {
+    it("returns userId when logged in as an individual account", async () => {
+      mockedGetSession.mockResolvedValue({ user: { id: "user1", accountType: "individual" } });
+      const result = await requireIndividualUser();
+      expect(isAuthError(result)).toBe(false);
+      if (!isAuthError(result)) {
+        expect(result.userId).toBe("user1");
+        expect(result.isAdmin).toBe(false);
+      }
+    });
+
+    it("returns 403 for organization accounts", async () => {
+      mockedGetSession.mockResolvedValue({ user: { id: "org1", accountType: "organization" } });
+      const result = await requireIndividualUser();
+      expect(isAuthError(result)).toBe(true);
+      if (isAuthError(result)) {
+        expect(result.status).toBe(403);
+        expect(await result.json()).toEqual({ error: "Individual account required" });
+      }
+    });
+
+    it("normalizes legacy student account type as individual", async () => {
+      mockedGetSession.mockResolvedValue({ user: { id: "user1", accountType: "student" } });
+      const result = await requireIndividualUser();
+      expect(isAuthError(result)).toBe(false);
     });
   });
 

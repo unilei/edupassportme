@@ -49,11 +49,11 @@ describe("Header session state", () => {
       data: {
         user: {
           id: "user_1",
-          email: "student@example.com",
-          name: "Student",
+          email: "individual@example.com",
+          name: "Individual",
           role: "user",
           tier: "free",
-          accountType: "student",
+          accountType: "individual",
         },
       },
     });

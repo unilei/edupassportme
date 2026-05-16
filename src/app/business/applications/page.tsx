@@ -296,7 +296,7 @@ function BusinessApplicationsContent() {
           <div className="rounded-xl border bg-card py-12 text-center">
             <FileText className="mx-auto mb-3 h-10 w-10 text-muted-foreground/50" />
             <p className="font-medium">No applications yet</p>
-            <p className="mt-1 text-sm text-muted-foreground">Applications will appear after students quick-apply to your job listings.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Applications will appear after individuals quick-apply to your job listings.</p>
           </div>
         ) : (
           applications.map((application) => {

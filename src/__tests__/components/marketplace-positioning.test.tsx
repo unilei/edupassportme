@@ -40,7 +40,7 @@ describe("AggregatorHero marketplace positioning", () => {
     expect(screen.getByText("Marketplace launch")).toBeInTheDocument();
     expect(
       screen.getByRole("heading", {
-        name: "The new EDU Passport connects student opportunity discovery with real execution.",
+        name: "The new EDU Passport connects opportunity discovery with real execution.",
       }),
     ).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Track in Workspace/ })).toHaveAttribute(

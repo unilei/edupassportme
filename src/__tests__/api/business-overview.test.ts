@@ -105,12 +105,12 @@ describe("/api/business/overview", () => {
     expect(admin.status).toBe(401);
     expect(await admin.json()).toEqual({ error: "Unauthorized" });
 
-    mocks.getServerSession.mockResolvedValue({ user: { id: "student_1", accountType: "student" } });
+    mocks.getServerSession.mockResolvedValue({ user: { id: "individual_1", accountType: "individual" } });
 
-    const student = await GET();
+    const individual = await GET();
 
-    expect(student.status).toBe(403);
-    expect(await student.json()).toEqual({ error: "Business account required" });
+    expect(individual.status).toBe(403);
+    expect(await individual.json()).toEqual({ error: "Business account required" });
     expect(mocks.organizationFindMany).not.toHaveBeenCalled();
   });
 

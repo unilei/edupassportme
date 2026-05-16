@@ -18,7 +18,7 @@ vi.mock("@/components/layout/NotificationBell", () => ({
   NotificationBell: () => null,
 }));
 
-function renderHeader(accountType: "student" | "organization" | "partner") {
+function renderHeader(accountType: "individual" | "organization" | "partner") {
   mocks.useSession.mockReturnValue({
     status: "authenticated",
     data: {
@@ -50,8 +50,8 @@ describe("Header account type navigation", () => {
     vi.clearAllMocks();
   });
 
-  it("shows student workflow links only for student accounts", async () => {
-    renderHeader("student");
+  it("shows individual workflow links only for individual accounts", async () => {
+    renderHeader("individual");
     const menu = await openUserMenu();
 
     expect(within(menu).getByText("Workspace")).toBeInTheDocument();

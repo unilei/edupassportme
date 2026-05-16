@@ -14,6 +14,11 @@ vi.mock("@/lib/auth", () => ({
   authOptions: {},
 }));
 
+vi.mock("@/lib/api-utils", () => ({
+  requireIndividualUser: vi.fn(),
+  isAuthError: vi.fn((r: unknown) => !(r && typeof r === "object" && "userId" in r)),
+}));
+
 vi.mock("@/lib/prisma", () => ({
   prisma: {
     application: {
@@ -23,6 +28,9 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 import { PATCH } from "@/app/api/user/applications/route";
+import { requireIndividualUser } from "@/lib/api-utils";
+
+const mockRequireIndividualUser = vi.mocked(requireIndividualUser);
 
 function patchRequest(body: unknown) {
   return new NextRequest("http://localhost:3000/api/user/applications", {
@@ -36,6 +44,7 @@ describe("/api/user/applications lifecycle", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getServerSession.mockResolvedValue({ user: { id: "user_1" } });
+    mockRequireIndividualUser.mockResolvedValue({ userId: "user_1", isAdmin: false });
     mocks.applicationUpdateMany.mockResolvedValue({ count: 1 });
   });
 

@@ -1,6 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { AuthRequired } from "@/components/auth/AuthRequired";
+import { IndividualAccountRequired } from "@/components/auth/AccountTypeRequired";
 
 const useSessionMock = vi.fn();
 
@@ -41,5 +42,47 @@ describe("AuthRequired", () => {
     );
 
     expect(screen.getByText("Private page")).toBeInTheDocument();
+  });
+});
+
+describe("IndividualAccountRequired", () => {
+  it("renders children for individual accounts", () => {
+    useSessionMock.mockReturnValue({
+      status: "authenticated",
+      data: { user: { accountType: "individual" } },
+    });
+
+    render(
+      <IndividualAccountRequired
+        callbackUrl="/workspace"
+        title="Sign in to open your workspace"
+        description="Your workspace is private."
+      >
+        <div>Individual workspace</div>
+      </IndividualAccountRequired>,
+    );
+
+    expect(screen.getByText("Individual workspace")).toBeInTheDocument();
+  });
+
+  it("blocks organization accounts from individual-only pages", () => {
+    useSessionMock.mockReturnValue({
+      status: "authenticated",
+      data: { user: { accountType: "organization" } },
+    });
+
+    render(
+      <IndividualAccountRequired
+        callbackUrl="/workspace"
+        title="Sign in to open your workspace"
+        description="Your workspace is private."
+      >
+        <div>Individual workspace</div>
+      </IndividualAccountRequired>,
+    );
+
+    expect(screen.getByRole("heading", { name: "Individual account required" })).toBeInTheDocument();
+    expect(screen.getByText(/This workspace is for individual accounts/i)).toBeInTheDocument();
+    expect(screen.queryByText("Individual workspace")).not.toBeInTheDocument();
   });
 });

@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { AuthRequired, AuthRequiredPrompt } from "@/components/auth/AuthRequired";
+import { AuthRequiredPrompt } from "@/components/auth/AuthRequired";
+import { IndividualAccountRequired } from "@/components/auth/AccountTypeRequired";
 import { useFetch } from "@/hooks/useFetch";
 import { BookOpen, CheckCircle, Clock, XCircle, Trash2 } from "lucide-react";
 import Link from "next/link";
@@ -194,12 +195,12 @@ function LearningContent() {
 
 export default function LearningPage() {
   return (
-    <AuthRequired
+    <IndividualAccountRequired
       callbackUrl="/learning"
       title="Sign in to track your learning"
       description="Your learning list and progress are saved to your EDU Passport account."
     >
       <LearningContent />
-    </AuthRequired>
+    </IndividualAccountRequired>
   );
 }

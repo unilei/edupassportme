@@ -38,24 +38,24 @@ vi.mock("@/lib/prisma", () => ({
 }));
 
 vi.mock("@/lib/api-utils", () => ({
-  requireUser: vi.fn(),
+  requireIndividualUser: vi.fn(),
   isAuthError: vi.fn((r: unknown) => !(r && typeof r === "object" && "userId" in r)),
 }));
 
 import { GET, POST, DELETE as DELETE_HANDLER } from "@/app/api/user/progress/route";
-import { requireUser } from "@/lib/api-utils";
+import { requireIndividualUser } from "@/lib/api-utils";
 
-const mockRequireUser = vi.mocked(requireUser);
+const mockRequireIndividualUser = vi.mocked(requireIndividualUser);
 
 describe("/api/user/progress", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockRequireUser.mockResolvedValue({ userId: "user1", isAdmin: false });
+    mockRequireIndividualUser.mockResolvedValue({ userId: "user1", isAdmin: false });
   });
 
   describe("GET", () => {
     it("should return 401 when not authenticated", async () => {
-      mockRequireUser.mockResolvedValue(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
+      mockRequireIndividualUser.mockResolvedValue(NextResponse.json({ error: "Unauthorized" }, { status: 401 }));
 
       const res = await GET(new NextRequest("http://localhost:3000/api/user/progress"));
       expect(res.status).toBe(401);

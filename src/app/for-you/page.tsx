@@ -7,7 +7,8 @@ import { Sparkles, Loader2, Settings } from "lucide-react";
 import { ListingCard } from "@/components/listing/ListingCard";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { Button } from "@/components/ui/button";
-import { AuthRequired, AuthRequiredPrompt } from "@/components/auth/AuthRequired";
+import { AuthRequiredPrompt } from "@/components/auth/AuthRequired";
+import { IndividualAccountRequired } from "@/components/auth/AccountTypeRequired";
 
 interface ListingData {
   id: string;
@@ -140,12 +141,12 @@ function ForYouContent() {
 
 export default function ForYouPage() {
   return (
-    <AuthRequired
+    <IndividualAccountRequired
       callbackUrl="/for-you"
       title="Sign in to see your recommendations"
       description="Your recommendations are personalized from your profile and saved activity."
     >
       <ForYouContent />
-    </AuthRequired>
+    </IndividualAccountRequired>
   );
 }

@@ -7,9 +7,10 @@ describe("UserGuidePage", () => {
     render(<UserGuidePage />);
 
     expect(screen.getByRole("heading", { name: "User Guide" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Student guide" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Organization guide" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Partner guide" })).toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Admin guide" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Individual guide/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Organization guide/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Partner guide/i })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: /Admin guide/i })).toBeInTheDocument();
+    expect(screen.getByText(/students, parents, educators, job seekers/i)).toBeInTheDocument();
   });
 });

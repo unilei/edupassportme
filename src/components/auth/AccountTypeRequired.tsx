@@ -73,3 +73,28 @@ export function AccountTypeRequired({
 
   return <>{children}</>;
 }
+
+export function IndividualAccountRequired({
+  children,
+  callbackUrl,
+  title,
+  description,
+}: {
+  children: ReactNode;
+  callbackUrl: string;
+  title: string;
+  description: string;
+}) {
+  return (
+    <AccountTypeRequired
+      allowed={["individual"]}
+      callbackUrl={callbackUrl}
+      title={title}
+      description={description}
+      blockedTitle="Individual account required"
+      blockedDescription="This workspace is for individual accounts. Use Business or Deal Program for organization or partner workflows."
+    >
+      {children}
+    </AccountTypeRequired>
+  );
+}

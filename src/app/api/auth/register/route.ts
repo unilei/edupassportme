@@ -3,7 +3,7 @@ import { hash } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { createVerificationToken } from "@/lib/tokens";
 import { sendMail, emailVerificationTemplate } from "@/lib/email";
-import { isAccountType, normalizeAccountType } from "@/lib/account-types";
+import { isPublicRegistrationAccountType, normalizeAccountType } from "@/lib/account-types";
 
 export async function POST(request: NextRequest) {
   try {
@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
     }
 
-    if (accountType !== undefined && !isAccountType(accountType)) {
+    if (accountType !== undefined && !isPublicRegistrationAccountType(accountType)) {
       return NextResponse.json({ error: "Choose a valid account type." }, { status: 400 });
     }
 

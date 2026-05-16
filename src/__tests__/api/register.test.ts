@@ -97,6 +97,74 @@ describe("POST /api/auth/register", () => {
     expect(mockCreate).not.toHaveBeenCalled();
   });
 
+  it("should reject the retired student account type for new registrations", async () => {
+    mockFindUnique.mockResolvedValue(null);
+
+    const res = await POST(makeRequest({
+      email: "new@test.com",
+      password: "123456",
+      accountType: "student",
+    }));
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error).toBe("Choose a valid account type.");
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
+  it("should create an individual user and return 201 on success", async () => {
+    mockFindUnique.mockResolvedValue(null);
+    mockCreate.mockResolvedValue({
+      id: "new-user-id",
+      email: "new@test.com",
+      name: "Test User",
+      accountType: "individual",
+    });
+
+    const res = await POST(makeRequest({
+      email: "new@test.com",
+      password: "123456",
+      name: "Test User",
+      accountType: "individual",
+    }));
+    const body = await res.json();
+
+    expect(res.status).toBe(201);
+    expect(body.user.email).toBe("new@test.com");
+    expect(body.user.accountType).toBe("individual");
+    expect(body.requiresVerification).toBe(true);
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        accountType: "individual",
+      }),
+    }));
+  });
+
+  it("should default missing account type to individual", async () => {
+    mockFindUnique.mockResolvedValue(null);
+    mockCreate.mockResolvedValue({
+      id: "new-user-id",
+      email: "new@test.com",
+      name: "Test User",
+      accountType: "individual",
+    });
+
+    const res = await POST(makeRequest({
+      email: "new@test.com",
+      password: "123456",
+      name: "Test User",
+    }));
+    const body = await res.json();
+
+    expect(res.status).toBe(201);
+    expect(body.user.accountType).toBe("individual");
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        accountType: "individual",
+      }),
+    }));
+  });
+
   it("should create user and return 201 on success", async () => {
     mockFindUnique.mockResolvedValue(null);
     mockCreate.mockResolvedValue({

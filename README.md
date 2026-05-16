@@ -1,6 +1,6 @@
 # EDU Passport
 
-**Student opportunity workspace** — discover courses, jobs, events, and student deals, then track every next action from saved to completed.
+**Education opportunity marketplace** — discover courses, jobs, events, and partner deals, then track every next action from saved to completed in an individual workspace.
 
 ## Tech Stack
 
@@ -145,7 +145,7 @@ src/
 │   ├── courses/jobs/events/deals/  # Vertical listing pages
 │   ├── feed/               # Activity feed page
 │   ├── learning/           # Learning progress tracker
-│   ├── workspace/          # Student opportunity workspace
+│   ├── workspace/          # Individual opportunity workspace
 │   └── user/[id]/          # Public user profiles
 ├── components/
 │   ├── ai/                 # Chat assistant, AI summary button

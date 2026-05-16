@@ -6,7 +6,8 @@ import { useRouter } from "next/navigation";
 import { Heart, Loader2 } from "lucide-react";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { Button } from "@/components/ui/button";
-import { AuthRequired, AuthRequiredPrompt } from "@/components/auth/AuthRequired";
+import { AuthRequiredPrompt } from "@/components/auth/AuthRequired";
+import { IndividualAccountRequired } from "@/components/auth/AccountTypeRequired";
 import { OpportunityWorkspacePanel, type OpportunityWorkspaceEntry } from "@/components/workspace/OpportunityWorkspacePanel";
 
 type SavedEntry = OpportunityWorkspaceEntry;
@@ -104,12 +105,12 @@ function SavedContent() {
 
 export default function SavedPage() {
   return (
-    <AuthRequired
+    <IndividualAccountRequired
       callbackUrl="/saved"
       title="Sign in to view saved listings"
       description="Saved listings are stored in your EDU Passport account."
     >
       <SavedContent />
-    </AuthRequired>
+    </IndividualAccountRequired>
   );
 }

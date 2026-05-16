@@ -205,7 +205,7 @@ export default function DealProgramPage() {
         </div>
         <h1 className="text-3xl font-bold tracking-tight">Partner account required</h1>
         <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-          Deal Program applications are for vendors and benefit partners. Organization accounts can submit marketplace opportunities instead.
+          Individual and organization accounts cannot apply to the Deal Program. Use a partner account for deals, sponsorships, and campaigns.
         </p>
         <div className="mt-7 flex flex-col gap-2 sm:flex-row sm:justify-center">
           <Button asChild>
@@ -311,7 +311,7 @@ export default function DealProgramPage() {
                   name="proposedOffer"
                   value={form.proposedOffer}
                   onChange={handleInputChange}
-                  placeholder="Describe the student benefit, discount, eligibility, timing, and any restrictions."
+                  placeholder="Describe the education or career benefit, discount, eligibility, timing, and any restrictions."
                   required
                   className="min-h-32"
                 />

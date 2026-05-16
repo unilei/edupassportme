@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { ArrowRight, CalendarClock, FileText, Loader2, Sparkles, Target } from "lucide-react";
-import { AuthRequired, AuthRequiredPrompt } from "@/components/auth/AuthRequired";
+import { AuthRequiredPrompt } from "@/components/auth/AuthRequired";
+import { IndividualAccountRequired } from "@/components/auth/AccountTypeRequired";
 import { Breadcrumb } from "@/components/layout/Breadcrumb";
 import { ListingCard } from "@/components/listing/ListingCard";
 import { OpportunityWorkspacePanel, type OpportunityWorkspaceEntry } from "@/components/workspace/OpportunityWorkspacePanel";
@@ -127,13 +128,13 @@ function WorkspaceContent() {
         <div>
           <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
             <Target className="h-3.5 w-3.5" />
-            Student Opportunity Workspace
+            Individual Opportunity Workspace
           </div>
           <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
             Keep every next step moving.
           </h1>
           <p className="mt-2 max-w-2xl text-muted-foreground">
-            Turn courses, jobs, events, and student deals into a focused action list with deadlines, priorities, and recommendations.
+            Turn courses, jobs, events, and deals into a focused action list with deadlines, priorities, and recommendations.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
@@ -215,12 +216,12 @@ function WorkspaceContent() {
 
 export default function WorkspacePage() {
   return (
-    <AuthRequired
+    <IndividualAccountRequired
       callbackUrl="/workspace"
       title="Sign in to open your workspace"
       description="Your saved opportunities, deadlines, and recommendations live in your EDU Passport account."
     >
       <WorkspaceContent />
-    </AuthRequired>
+    </IndividualAccountRequired>
   );
 }

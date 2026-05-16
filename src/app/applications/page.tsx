@@ -6,7 +6,8 @@ import { FileText, MapPin, ExternalLink, Clock, Crown } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { AuthRequired, AuthRequiredPrompt } from "@/components/auth/AuthRequired";
+import { AuthRequiredPrompt } from "@/components/auth/AuthRequired";
+import { IndividualAccountRequired } from "@/components/auth/AccountTypeRequired";
 
 interface ApplicationItem {
   id: string;
@@ -237,12 +238,12 @@ function ApplicationsContent() {
 
 export default function ApplicationsPage() {
   return (
-    <AuthRequired
+    <IndividualAccountRequired
       callbackUrl="/applications"
       title="Sign in to track applications"
       description="Application tracking is stored in your EDU Passport account."
     >
       <ApplicationsContent />
-    </AuthRequired>
+    </IndividualAccountRequired>
   );
 }

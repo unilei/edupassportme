@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { activeListingWhere } from "@/lib/listing-visibility";
 import { isProUser } from "@/lib/pro";
+import { isAuthError, requireIndividualUser } from "@/lib/api-utils";
 
 const FREE_TRACKING_LIMIT = 20;
 const VALID_STATUSES = new Set(["saved", "researching", "applying", "applied", "completed", "dismissed"]);
 const VALID_PRIORITIES = new Set(["low", "medium", "high"]);
-
-async function getUserId(): Promise<string | null> {
-  const session = await getServerSession(authOptions);
-  const id = (session?.user as Record<string, unknown> | undefined)?.id as string | undefined;
-  return id && id !== "admin" ? id : null;
-}
 
 function parseOptionalDate(value: unknown): Date | null | undefined {
   if (value === undefined) return undefined;
@@ -26,8 +19,9 @@ function parseOptionalDate(value: unknown): Date | null | undefined {
 
 // GET — list saved listings for current user
 export async function GET() {
-  const userId = await getUserId();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await requireIndividualUser();
+  if (isAuthError(user)) return user;
+  const userId = user.userId;
 
   const saved = await prisma.savedListing.findMany({
     where: { userId, listing: activeListingWhere() },
@@ -48,8 +42,9 @@ export async function GET() {
 
 // POST — save or unsave a listing
 export async function POST(request: NextRequest) {
-  const userId = await getUserId();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await requireIndividualUser();
+  if (isAuthError(user)) return user;
+  const userId = user.userId;
 
   const body = await request.json();
   const { listingId } = body as { listingId?: string };
@@ -96,8 +91,9 @@ export async function POST(request: NextRequest) {
 
 // PATCH — update workspace tracking metadata for a saved opportunity
 export async function PATCH(request: NextRequest) {
-  const userId = await getUserId();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await requireIndividualUser();
+  if (isAuthError(user)) return user;
+  const userId = user.userId;
 
   const body = await request.json();
   const {

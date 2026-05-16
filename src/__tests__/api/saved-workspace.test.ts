@@ -129,4 +129,19 @@ describe("/api/user/saved workspace tracking", () => {
       data: { userId: "user_1", listingId: "listing_1" },
     });
   });
+
+  it("rejects organization accounts from personal saved workspace APIs", async () => {
+    mocks.getServerSession.mockResolvedValue({ user: { id: "org_1", accountType: "organization" } });
+
+    const res = await savedRoute.POST(new NextRequest("http://localhost:3000/api/user/saved", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ listingId: "listing_1" }),
+    }));
+    const body = await res.json();
+
+    expect(res.status).toBe(403);
+    expect(body).toEqual({ error: "Individual account required" });
+    expect(mocks.savedListingFindUnique).not.toHaveBeenCalled();
+  });
 });

@@ -27,9 +27,9 @@ const accountTypeOptions: {
   icon: typeof GraduationCap;
 }[] = [
   {
-    value: "student",
-    label: "Student",
-    description: "Discover, save, and track education opportunities.",
+    value: "individual",
+    label: "Individual",
+    description: "Find, save, and track education and career opportunities.",
     icon: GraduationCap,
   },
   {
@@ -47,7 +47,7 @@ const accountTypeOptions: {
 ];
 
 export default function SignUpPage() {
-  const [accountType, setAccountType] = useState<AccountType>("student");
+  const [accountType, setAccountType] = useState<AccountType>("individual");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -248,10 +248,10 @@ export default function SignUpPage() {
             <div>
               <p className="text-sm font-medium mb-1">Why join EDU Passport?</p>
               <ul className="text-xs text-muted-foreground space-y-1">
-                <li>Save and organize your favorite courses</li>
-                <li>Get personalized recommendations</li>
-                <li>Track your learning progress</li>
-                <li>Apply to jobs with one click</li>
+                <li>Save and organize education and career opportunities</li>
+                <li>Get personalized recommendations based on your goals</li>
+                <li>Track applications, learning, and next steps</li>
+                <li>Use one workspace for courses, jobs, events, and deals</li>
               </ul>
             </div>
           </div>

@@ -4,11 +4,11 @@ import { Button } from "@/components/ui/button";
 
 const guides = [
   {
-    title: "Student guide",
+    title: "Individual guide",
     icon: GraduationCap,
     steps: [
-      "Create a Student account and verify your email.",
-      "Complete profile goals, interests, preferred opportunity types, and regions.",
+      "Create an Individual account and verify your email.",
+      "Students, parents, educators, job seekers, and lifelong learners can use one workspace to save opportunities, track applications, and manage next steps.",
       "Use For You and search pages to find courses, jobs, events, and deals.",
       "Save opportunities, set deadline or next action dates, and track status in Workspace.",
       "Use Applications for job application progress and Learning for course progress.",
@@ -32,7 +32,7 @@ const guides = [
     icon: Handshake,
     steps: [
       "Create a Partner account and verify your email.",
-      "Use Deal Program to apply for student benefit or offer partnerships.",
+      "Use Deal Program to apply for education, career, sponsorship, or campaign partnerships.",
       "Track application review status and admin notes from the Deal Program page.",
       "After approval, use Business to monitor partner supply and published outcomes.",
       "Do not use the general Submit workflow for partner-only offers.",
@@ -63,7 +63,7 @@ export default function UserGuidePage() {
         </div>
         <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">User Guide</h1>
         <p className="mt-3 text-muted-foreground">
-          EDU Passport separates student, organization, partner, and admin workflows so each account sees the tools that match its job.
+          EDU Passport separates individual, organization, partner, and admin workflows so each account sees the tools that match its job.
         </p>
       </div>
 

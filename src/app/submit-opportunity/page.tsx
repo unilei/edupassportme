@@ -145,7 +145,7 @@ export default function SubmitOpportunityPage() {
         </div>
         <h1 className="text-3xl font-bold tracking-tight">Organization account required</h1>
         <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
-          Student accounts track opportunities. Partner accounts should use the Deal Program workflow for offers.
+          Individual accounts are for finding, saving, and tracking opportunities. Use an organization account to submit listings. Partner accounts should use the Deal Program workflow for offers.
         </p>
         <div className="mt-7 flex flex-col gap-2 sm:flex-row sm:justify-center">
           <Button asChild>

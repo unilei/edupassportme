@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { requireUser, isAuthError } from "@/lib/api-utils";
+import { requireIndividualUser, isAuthError } from "@/lib/api-utils";
 import { checkAndAwardBadges } from "@/lib/badges";
 import type { Prisma } from "@/generated/prisma/client";
 import { activeListingWhere } from "@/lib/listing-visibility";
 
 export async function GET(req: NextRequest) {
-  const user = await requireUser();
+  const user = await requireIndividualUser();
   if (isAuthError(user)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const user = await requireUser();
+  const user = await requireIndividualUser();
   if (isAuthError(user)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -128,7 +128,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function DELETE(req: NextRequest) {
-  const user = await requireUser();
+  const user = await requireIndividualUser();
   if (isAuthError(user)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

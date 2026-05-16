@@ -92,7 +92,7 @@ export const authOptions: NextAuthOptions = {
           token.role = currentUser.banned ? "user" : currentUser.role;
           token.tier = currentUser.banned ? "free" : currentUser.tier || "free";
           token.accountType = currentUser.banned
-            ? "student"
+            ? "individual"
             : normalizeAccountType(currentUser.accountType);
           token.banned = currentUser.banned;
         }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { getSessionAccountType } from "@/lib/account-types";
 
 // ---------------------------------------------------------------------------
 // Standardised API error / success responses
@@ -32,6 +33,23 @@ export async function requireUser(): Promise<AuthResult | NextResponse> {
   const userId = (session?.user as Record<string, unknown> | undefined)?.id as string | undefined;
   if (!userId || userId === "admin") {
     return apiError("Unauthorized", 401);
+  }
+  return { userId, isAdmin: false };
+}
+
+/**
+ * Require a logged-in individual user for personal workspace APIs.
+ * Organization and partner accounts must use their business/partner workflows.
+ */
+export async function requireIndividualUser(): Promise<AuthResult | NextResponse> {
+  const session = await getServerSession(authOptions);
+  const user = session?.user as Record<string, unknown> | undefined;
+  const userId = user?.id as string | undefined;
+  if (!userId || userId === "admin") {
+    return apiError("Unauthorized", 401);
+  }
+  if (getSessionAccountType(user) !== "individual") {
+    return apiError("Individual account required", 403);
   }
   return { userId, isAdmin: false };
 }

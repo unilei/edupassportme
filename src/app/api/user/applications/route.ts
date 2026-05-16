@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getServerSession } from "next-auth";
-import { authOptions } from "@/lib/auth";
+import { isAuthError, requireIndividualUser } from "@/lib/api-utils";
 import { prisma } from "@/lib/prisma";
 import { isProUser } from "@/lib/pro";
 import { activeListingWhere } from "@/lib/listing-visibility";
@@ -51,11 +50,9 @@ function normalizeOptionalString(value: unknown) {
 
 // GET: List user's applications
 export async function GET() {
-  const session = await getServerSession(authOptions);
-  const userId = (session?.user as Record<string, unknown> | undefined)?.id as string | undefined;
-  if (!userId || userId === "admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const user = await requireIndividualUser();
+  if (isAuthError(user)) return user;
+  const userId = user.userId;
 
   const applications = await prisma.application.findMany({
     where: { userId },
@@ -80,11 +77,9 @@ export async function GET() {
 
 // POST: Quick-apply to a job listing
 export async function POST(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  const userId = (session?.user as Record<string, unknown> | undefined)?.id as string | undefined;
-  if (!userId || userId === "admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const user = await requireIndividualUser();
+  if (isAuthError(user)) return user;
+  const userId = user.userId;
 
   // Check pro status
   const isPro = await isProUser(userId);
@@ -136,11 +131,9 @@ export async function POST(request: NextRequest) {
 
 // PATCH: Update application status
 export async function PATCH(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  const userId = (session?.user as Record<string, unknown> | undefined)?.id as string | undefined;
-  if (!userId || userId === "admin") {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  const user = await requireIndividualUser();
+  if (isAuthError(user)) return user;
+  const userId = user.userId;
 
   const body = await request.json() as ApplicationPatchBody;
   const applicationId = typeof body.applicationId === "string" ? body.applicationId : undefined;

@@ -37,7 +37,7 @@ export async function POST(req: NextRequest) {
   const tagNames = listing.tags.map((t) => t.tag.name).join(", ");
   const priceStr = listing.priceLabel || (listing.price === 0 || listing.price === null ? "Free" : `$${listing.price}`);
 
-  const prompt = `You are an expert education advisor. Summarize this ${listing.type} listing concisely for a student considering it. Include key strengths, who it's best for, and any caveats. Keep it under 150 words.
+  const prompt = `You are an expert education advisor. Summarize this ${listing.type} listing concisely for someone considering it. Include key strengths, who it's best for, and any caveats. Keep it under 150 words.
 
 Title: ${listing.title}
 Provider: ${listing.provider.name}

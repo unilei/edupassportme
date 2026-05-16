@@ -46,7 +46,7 @@ describe("user-login credentials provider", () => {
       name: "New User",
       role: "user",
       tier: "free",
-      accountType: "student",
+      accountType: "individual",
       emailVerified: false,
       banned: false,
     });
@@ -63,7 +63,7 @@ describe("user-login credentials provider", () => {
       name: "Banned User",
       role: "user",
       tier: "free",
-      accountType: "student",
+      accountType: "individual",
       emailVerified: true,
       banned: true,
     });
@@ -91,6 +91,21 @@ describe("user-login credentials provider", () => {
     });
   });
 
+  it("normalizes legacy student account types while refreshing sessions", async () => {
+    mockFindUnique.mockResolvedValue({
+      role: "user",
+      tier: "free",
+      accountType: "student",
+      banned: false,
+    });
+
+    const token = await refreshJwt?.({
+      token: { userId: "user-1", role: "user", tier: "free" },
+    } as never);
+
+    expect(token).toMatchObject({ role: "user", tier: "free", accountType: "individual" });
+  });
+
   it("exposes account type on the session", async () => {
     const session = await authOptions.callbacks?.session?.({
       session: { user: { email: "owner@test.com" }, expires: "2026-05-17T00:00:00.000Z" },
@@ -107,6 +122,25 @@ describe("user-login credentials provider", () => {
       role: "user",
       tier: "free",
       accountType: "partner",
+    });
+  });
+
+  it("normalizes legacy student account type values on the session", async () => {
+    const session = await authOptions.callbacks?.session?.({
+      session: { user: { email: "owner@test.com" }, expires: "2026-05-17T00:00:00.000Z" },
+      token: {
+        userId: "user-1",
+        role: "user",
+        tier: "free",
+        accountType: "student",
+      },
+    } as never);
+
+    expect(session?.user).toMatchObject({
+      id: "user-1",
+      role: "user",
+      tier: "free",
+      accountType: "individual",
     });
   });
 });

@@ -19,7 +19,8 @@ describe("SignUpPage account type selection", () => {
 
     render(<SignUpPage />);
 
-    expect(screen.getByRole("radio", { name: /Student/i })).toBeChecked();
+    expect(screen.getByRole("radio", { name: /Individual/i })).toBeChecked();
+    expect(screen.queryByRole("radio", { name: /Student/i })).not.toBeInTheDocument();
     expect(screen.getByRole("radio", { name: /Organization/i })).toBeInTheDocument();
     expect(screen.getByRole("radio", { name: /Partner/i })).toBeInTheDocument();
 

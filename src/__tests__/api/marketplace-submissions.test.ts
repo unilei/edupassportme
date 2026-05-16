@@ -95,8 +95,8 @@ describe("/api/marketplace/submissions", () => {
     expect(mocks.listingSubmissionFindMany).not.toHaveBeenCalled();
   });
 
-  it("rejects student accounts from organization submissions", async () => {
-    mocks.getServerSession.mockResolvedValue({ user: { id: "student_1", accountType: "student" } });
+  it("rejects individual accounts from organization submissions", async () => {
+    mocks.getServerSession.mockResolvedValue({ user: { id: "individual_1", accountType: "individual" } });
 
     const res = await POST(
       postRequest({

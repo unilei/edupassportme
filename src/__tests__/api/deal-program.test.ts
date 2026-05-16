@@ -100,8 +100,8 @@ describe("/api/marketplace/deal-program", () => {
     expect(mocks.dealProgramApplicationFindMany).not.toHaveBeenCalled();
   });
 
-  it("rejects student accounts from partner deal applications", async () => {
-    mocks.getServerSession.mockResolvedValue({ user: { id: "student_1", accountType: "student" } });
+  it("rejects individual accounts from partner deal applications", async () => {
+    mocks.getServerSession.mockResolvedValue({ user: { id: "individual_1", accountType: "individual" } });
 
     const res = await POST(postRequest(validPayload));
 

@@ -11,7 +11,7 @@ import {
 
 const audienceCards = [
   {
-    title: "Student Workspace",
+    title: "Individual Workspace",
     description: "Save courses, jobs, events, and deals, then track status, priority, deadlines, and next actions.",
     href: "/workspace",
     cta: "Track in Workspace",
@@ -33,7 +33,7 @@ const audienceCards = [
   },
   {
     title: "Deal Program",
-    description: "Partners can apply to publish student-facing offers and manage their application status.",
+    description: "Partners can apply to publish education and career offers and manage their application status.",
     href: "/deal-program",
     cta: "Apply to Partner",
     icon: Handshake,
@@ -69,11 +69,11 @@ export function MarketplaceLaunchSection() {
               Marketplace launch
             </div>
             <h2 className="text-2xl font-bold tracking-tight sm:text-3xl">
-              The new EDU Passport connects student opportunity discovery with real execution.
+              The new EDU Passport connects opportunity discovery with real execution.
             </h2>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              Students get a focused workspace for next steps. Organizations can submit opportunities. Partners can apply to
-              publish student deals. Admin keeps marketplace quality under review.
+              Individuals get a focused workspace for next steps. Organizations can submit opportunities. Partners can apply to
+              publish education and career deals. Admin keeps marketplace quality under review.
             </p>
           </div>
           <Link
