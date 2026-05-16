@@ -82,24 +82,47 @@ describe("POST /api/auth/register", () => {
     expect(body.error).toContain("already exists");
   });
 
+  it("should return 400 when account type is invalid", async () => {
+    mockFindUnique.mockResolvedValue(null);
+
+    const res = await POST(makeRequest({
+      email: "new@test.com",
+      password: "123456",
+      accountType: "admin",
+    }));
+    const body = await res.json();
+
+    expect(res.status).toBe(400);
+    expect(body.error).toBe("Choose a valid account type.");
+    expect(mockCreate).not.toHaveBeenCalled();
+  });
+
   it("should create user and return 201 on success", async () => {
     mockFindUnique.mockResolvedValue(null);
     mockCreate.mockResolvedValue({
       id: "new-user-id",
       email: "new@test.com",
       name: "Test User",
+      accountType: "organization",
     });
 
     const res = await POST(makeRequest({
       email: "new@test.com",
       password: "123456",
       name: "Test User",
+      accountType: "organization",
     }));
     const body = await res.json();
 
     expect(res.status).toBe(201);
     expect(body.user.email).toBe("new@test.com");
+    expect(body.user.accountType).toBe("organization");
     expect(body.requiresVerification).toBe(true);
     expect(body.message).toContain("Verification email sent");
+    expect(mockCreate).toHaveBeenCalledWith(expect.objectContaining({
+      data: expect.objectContaining({
+        accountType: "organization",
+      }),
+    }));
   });
 });

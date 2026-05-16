@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useSession, signOut } from "next-auth/react";
-import { Menu, X, Heart, Sparkles, User, LogOut, Crown, FileText, ChevronDown, Target, Building2, Handshake } from "lucide-react";
+import { Menu, X, Heart, Sparkles, User, LogOut, Crown, FileText, ChevronDown, Target, Building2, Handshake, Send } from "lucide-react";
 import { ThemeToggle } from "@/components/shared/ThemeToggle";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { LocaleSwitcher } from "@/components/shared/LocaleSwitcher";
 import { useI18n } from "@/lib/i18n/context";
 import { Button } from "@/components/ui/button";
 import { BrandLogo } from "@/components/layout/BrandLogo";
+import { getSessionAccountType } from "@/lib/account-types";
 import { useState, useRef, useEffect } from "react";
 
 const navKeys = [
@@ -17,14 +18,14 @@ const navKeys = [
   { href: "/events", key: "nav.events" },
   { href: "/deals", key: "nav.deals" },
   { href: "/category", key: "nav.directory" },
-  { href: "/submit-opportunity", key: "nav.submitOpportunity" },
-  { href: "/deal-program", key: "nav.dealProgram" },
+  { href: "/guide", key: "nav.guide" },
 ];
 
 function UserMenu() {
   const { data: session, status } = useSession();
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -39,6 +40,7 @@ function UserMenu() {
 
   const userId = (session?.user as Record<string, unknown> | undefined)?.id as string | undefined;
   const userTier = (session?.user as Record<string, unknown> | undefined)?.tier as string | undefined;
+  const accountType = getSessionAccountType(session?.user);
   const isPro = userTier === "pro";
   const isUser = session && userId && userId !== "admin";
 
@@ -54,6 +56,35 @@ function UserMenu() {
       </div>
     );
   }
+
+  const menuLinks = accountType === "organization"
+    ? [
+        { href: "/business", label: t("nav.business"), icon: Building2, color: "text-emerald-600" },
+        { href: "/submit-opportunity", label: t("nav.submitOpportunity"), icon: Send, color: "text-amber-600" },
+        { href: "/business/listings", label: "Listings", icon: FileText, color: "text-blue-500" },
+        { href: "/business/applications", label: "Applicants", icon: User, color: "text-purple-500" },
+      ]
+    : accountType === "partner"
+      ? [
+          { href: "/deal-program", label: t("nav.dealProgram"), icon: Handshake, color: "text-emerald-600" },
+          { href: "/business", label: t("nav.business"), icon: Building2, color: "text-blue-500" },
+        ]
+      : [
+          { href: "/workspace", label: t("nav.workspace"), icon: Target, color: "text-primary" },
+          { href: "/for-you", label: t("nav.forYou"), icon: Sparkles, color: "text-purple-500" },
+          { href: "/saved", label: t("nav.saved"), icon: Heart, color: "text-red-500" },
+          { href: "/applications", label: t("nav.applications"), icon: FileText, color: "text-blue-500" },
+        ];
+
+  const handleSignOut = async () => {
+    setSigningOut(true);
+    setOpen(false);
+    try {
+      await signOut({ callbackUrl: "/", redirect: true });
+    } catch {
+      setSigningOut(false);
+    }
+  };
 
   return (
     <div ref={ref} className="relative">
@@ -81,48 +112,21 @@ function UserMenu() {
             <p className="text-xs text-muted-foreground truncate">{session.user?.email}</p>
           </div>
 
-          <Link
-            href="/business"
-            className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent transition-colors mx-1 rounded-lg"
-            onClick={() => setOpen(false)}
-          >
-            <Building2 className="h-4 w-4 text-emerald-600" /> {t("nav.business")}
-          </Link>
-          <Link
-            href="/workspace"
-            className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent transition-colors mx-1 rounded-lg"
-            onClick={() => setOpen(false)}
-          >
-            <Target className="h-4 w-4 text-primary" /> {t("nav.workspace")}
-          </Link>
-          <Link
-            href="/for-you"
-            className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent transition-colors mx-1 rounded-lg"
-            onClick={() => setOpen(false)}
-          >
-            <Sparkles className="h-4 w-4 text-purple-500" /> {t("nav.forYou")}
-          </Link>
-          <Link
-            href="/saved"
-            className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent transition-colors mx-1 rounded-lg"
-            onClick={() => setOpen(false)}
-          >
-            <Heart className="h-4 w-4 text-red-500" /> {t("nav.saved")}
-          </Link>
-          <Link
-            href="/applications"
-            className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent transition-colors mx-1 rounded-lg"
-            onClick={() => setOpen(false)}
-          >
-            <FileText className="h-4 w-4 text-blue-500" /> {t("nav.applications")}
-          </Link>
-          <Link
-            href="/deal-program"
-            className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent transition-colors mx-1 rounded-lg"
-            onClick={() => setOpen(false)}
-          >
-            <Handshake className="h-4 w-4 text-emerald-600" /> {t("nav.dealProgram")}
-          </Link>
+          {menuLinks.map((link) => {
+            const Icon = link.icon;
+
+            return (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent transition-colors mx-1 rounded-lg"
+                onClick={() => setOpen(false)}
+              >
+                <Icon className={`h-4 w-4 ${link.color}`} /> {link.label}
+              </Link>
+            );
+          })}
+
           <Link
             href="/profile"
             className="flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-accent transition-colors mx-1 rounded-lg"
@@ -143,7 +147,9 @@ function UserMenu() {
 
           <div className="border-t my-1" />
           <button
-            onClick={() => { signOut({ callbackUrl: "/" }); setOpen(false); }}
+            type="button"
+            onClick={handleSignOut}
+            disabled={signingOut}
             className="flex items-center gap-3 px-4 py-2.5 text-sm text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors w-full text-left mx-1 rounded-lg"
           >
             <LogOut className="h-4 w-4" /> {t("nav.signOut")}

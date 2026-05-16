@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { CalendarClock, FileText, Loader2, RefreshCw, Save, UserRound } from "lucide-react";
-import { AuthRequired, AuthRequiredPrompt } from "@/components/auth/AuthRequired";
+import { AuthRequiredPrompt } from "@/components/auth/AuthRequired";
+import { AccountTypeRequired } from "@/components/auth/AccountTypeRequired";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -424,12 +425,15 @@ function BusinessApplicationsContent() {
 
 export default function BusinessApplicationsPage() {
   return (
-    <AuthRequired
+    <AccountTypeRequired
+      allowed={["organization", "partner"]}
       callbackUrl="/business/applications"
       title="Sign in to manage applications"
       description="Applicant management is available to organization owner accounts."
+      blockedTitle="Business account required"
+      blockedDescription="Use an organization or partner account to manage applicant pipelines."
     >
       <BusinessApplicationsContent />
-    </AuthRequired>
+    </AccountTypeRequired>
   );
 }

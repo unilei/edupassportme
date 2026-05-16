@@ -2,11 +2,52 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { GraduationCap, Mail, Lock, User, Loader2, ArrowRight, Eye, EyeOff, Sparkles, CheckCircle2 } from "lucide-react";
+import {
+  Building2,
+  CheckCircle2,
+  GraduationCap,
+  Handshake,
+  Mail,
+  Lock,
+  User,
+  Loader2,
+  ArrowRight,
+  Eye,
+  EyeOff,
+  Sparkles,
+} from "lucide-react";
+import type { AccountType } from "@/lib/account-types";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+const accountTypeOptions: {
+  value: AccountType;
+  label: string;
+  description: string;
+  icon: typeof GraduationCap;
+}[] = [
+  {
+    value: "student",
+    label: "Student",
+    description: "Discover, save, and track education opportunities.",
+    icon: GraduationCap,
+  },
+  {
+    value: "organization",
+    label: "Organization",
+    description: "Submit jobs, events, courses, and marketplace listings.",
+    icon: Building2,
+  },
+  {
+    value: "partner",
+    label: "Partner",
+    description: "Apply for deal partnerships and manage partner offers.",
+    icon: Handshake,
+  },
+];
+
 export default function SignUpPage() {
+  const [accountType, setAccountType] = useState<AccountType>("student");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -23,7 +64,7 @@ export default function SignUpPage() {
     const res = await fetch("/api/auth/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password, name }),
+      body: JSON.stringify({ email, password, name, accountType }),
     });
 
     const data = await res.json();
@@ -69,7 +110,7 @@ export default function SignUpPage() {
 
   return (
     <div className="min-h-[80vh] flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-lg">
         {/* Card */}
         <div className="rounded-2xl border bg-card p-8 shadow-xl shadow-primary/5">
           {/* Header */}
@@ -87,6 +128,43 @@ export default function SignUpPage() {
                 {error}
               </div>
             )}
+
+            <fieldset className="space-y-3">
+              <legend className="text-sm font-medium">Choose your account type</legend>
+              <div className="grid gap-3">
+                {accountTypeOptions.map((option) => {
+                  const Icon = option.icon;
+                  const selected = accountType === option.value;
+
+                  return (
+                    <label
+                      key={option.value}
+                      htmlFor={`accountType-${option.value}`}
+                      className={`flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors ${
+                        selected
+                          ? "border-primary bg-primary/5"
+                          : "border-border bg-background hover:bg-accent/50"
+                      }`}
+                    >
+                      <input
+                        id={`accountType-${option.value}`}
+                        type="radio"
+                        name="accountType"
+                        value={option.value}
+                        checked={selected}
+                        onChange={() => setAccountType(option.value)}
+                        className="mt-1 h-4 w-4 accent-primary"
+                      />
+                      <Icon className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                      <span>
+                        <span className="block text-sm font-semibold">{option.label}</span>
+                        <span className="block text-xs text-muted-foreground">{option.description}</span>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+            </fieldset>
 
             <div className="space-y-2">
               <label htmlFor="name" className="text-sm font-medium">Name</label>

@@ -54,7 +54,7 @@ const validPayload = {
 describe("/api/marketplace/deal-program", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.getServerSession.mockResolvedValue({ user: { id: "user_1" } });
+    mocks.getServerSession.mockResolvedValue({ user: { id: "user_1", accountType: "partner" } });
     mocks.organizationFindFirst.mockResolvedValue(null);
     mocks.organizationCreate.mockResolvedValue({
       id: "org_1",
@@ -98,6 +98,30 @@ describe("/api/marketplace/deal-program", () => {
     expect(res.status).toBe(401);
     expect(await res.json()).toEqual({ error: "Unauthorized" });
     expect(mocks.dealProgramApplicationFindMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects student accounts from partner deal applications", async () => {
+    mocks.getServerSession.mockResolvedValue({ user: { id: "student_1", accountType: "student" } });
+
+    const res = await POST(postRequest(validPayload));
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({
+      error: "Use a partner account to apply for the Deal Program.",
+    });
+    expect(mocks.dealProgramApplicationCreate).not.toHaveBeenCalled();
+  });
+
+  it("rejects organization accounts from partner deal applications", async () => {
+    mocks.getServerSession.mockResolvedValue({ user: { id: "owner_1", accountType: "organization" } });
+
+    const res = await POST(postRequest(validPayload));
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({
+      error: "Use a partner account to apply for the Deal Program.",
+    });
+    expect(mocks.dealProgramApplicationCreate).not.toHaveBeenCalled();
   });
 
   it("lists only the current user's deal program applications", async () => {

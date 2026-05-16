@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { canUseBusinessWorkspace, getSessionAccountType } from "@/lib/account-types";
 import { prisma } from "@/lib/prisma";
 
 type SessionUser = Record<string, unknown>;
@@ -15,12 +16,20 @@ type BusinessOrganization = {
 
 type FindManyDelegate<T> = (args: Record<string, unknown>) => Promise<T[]>;
 
-function getBusinessUserId(session: unknown) {
+function getBusinessUser(session: unknown) {
   const user = (session as { user?: SessionUser } | null | undefined)?.user;
   const id = typeof user?.id === "string" ? user.id : undefined;
   const role = typeof user?.role === "string" ? user.role : undefined;
 
-  return id && id !== "admin" && role !== "admin" ? id : null;
+  if (!id || id === "admin" || role === "admin") {
+    return { ok: false as const, status: 401, error: "Unauthorized" };
+  }
+
+  if (!canUseBusinessWorkspace(getSessionAccountType(user))) {
+    return { ok: false as const, status: 403, error: "Business account required" };
+  }
+
+  return { ok: true as const, id };
 }
 
 function ownerListingWhere(organizationIds: string[]) {
@@ -33,12 +42,12 @@ function ownerListingWhere(organizationIds: string[]) {
 }
 
 export async function GET() {
-  const userId = getBusinessUserId(await getServerSession(authOptions));
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = getBusinessUser(await getServerSession(authOptions));
+  if (!user.ok) return NextResponse.json({ error: user.error }, { status: user.status });
 
   const organizationFindMany = prisma.organization.findMany as unknown as FindManyDelegate<BusinessOrganization>;
   const organizations = await organizationFindMany({
-    where: { ownerId: userId },
+    where: { ownerId: user.id },
     orderBy: { createdAt: "asc" },
     select: {
       id: true,

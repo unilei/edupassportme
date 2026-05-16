@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useSession } from "next-auth/react";
-import { ArrowRight, Loader2, Send, Sparkles } from "lucide-react";
+import { ArrowRight, Loader2, Send, ShieldAlert, Sparkles } from "lucide-react";
+import { canSubmitOpportunities, getSessionAccountType } from "@/lib/account-types";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -66,7 +67,7 @@ type SubmitOpportunityForm = typeof initialForm;
 type SubmitOpportunityField = keyof SubmitOpportunityForm;
 
 export default function SubmitOpportunityPage() {
-  const { status } = useSession();
+  const { data: session, status } = useSession();
   const [form, setForm] = useState<SubmitOpportunityForm>(initialForm);
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("");
@@ -131,6 +132,35 @@ export default function SubmitOpportunityPage() {
             Sign in to submit <ArrowRight className="h-4 w-4" />
           </Link>
         </Button>
+      </div>
+    );
+  }
+
+  const accountType = getSessionAccountType(session?.user);
+  if (!canSubmitOpportunities(accountType)) {
+    return (
+      <div className="mx-auto max-w-2xl px-4 py-20 text-center">
+        <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+          <ShieldAlert className="h-6 w-6" />
+        </div>
+        <h1 className="text-3xl font-bold tracking-tight">Organization account required</h1>
+        <p className="mx-auto mt-3 max-w-xl text-muted-foreground">
+          Student accounts track opportunities. Partner accounts should use the Deal Program workflow for offers.
+        </p>
+        <div className="mt-7 flex flex-col gap-2 sm:flex-row sm:justify-center">
+          <Button asChild>
+            <Link href="/guide">Open user guide</Link>
+          </Button>
+          {accountType === "partner" ? (
+            <Button asChild variant="outline">
+              <Link href="/deal-program">Deal Program</Link>
+            </Button>
+          ) : (
+            <Button asChild variant="outline">
+              <Link href="/workspace">Workspace</Link>
+            </Button>
+          )}
+        </div>
       </div>
     );
   }

@@ -9,22 +9,33 @@ import {
 } from "@/lib/marketplace/permissions";
 import { normalizeListingSubmissionInput } from "@/lib/marketplace/submissions";
 import { rateLimit } from "@/lib/rate-limit";
+import {
+  canSubmitOpportunities,
+  getSessionAccountType,
+  type AccountType,
+} from "@/lib/account-types";
 
-async function getUserId(): Promise<string | null> {
+type MarketplaceSessionUser = {
+  id: string;
+  accountType: AccountType;
+};
+
+async function getMarketplaceSessionUser(): Promise<MarketplaceSessionUser | null> {
   const session = await getServerSession(authOptions);
   const user = session?.user as Record<string, unknown> | undefined;
   const id = user?.id as string | undefined;
   const role = user?.role as string | undefined;
 
-  return id && id !== "admin" && role !== "admin" ? id : null;
+  if (!id || id === "admin" || role === "admin") return null;
+  return { id, accountType: getSessionAccountType(user) };
 }
 
 export async function GET() {
-  const userId = await getUserId();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await getMarketplaceSessionUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const submissions = await prisma.listingSubmission.findMany({
-    where: { submittedById: userId },
+    where: { submittedById: user.id },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -42,10 +53,17 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const userId = await getUserId();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await getMarketplaceSessionUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const limited = rateLimit(`marketplace-submissions:${userId}`, { limit: 10, window: 60 * 60 });
+  if (!canSubmitOpportunities(user.accountType)) {
+    const error = user.accountType === "partner"
+      ? "Use the Deal Program workflow for partner offers."
+      : "Use an organization account to submit marketplace opportunities.";
+    return NextResponse.json({ error }, { status: 403 });
+  }
+
+  const limited = rateLimit(`marketplace-submissions:${user.id}`, { limit: 10, window: 60 * 60 });
   if (!limited.success) {
     return NextResponse.json(
       { error: "Submission limit reached. Please try again later." },
@@ -62,7 +80,7 @@ export async function POST(request: NextRequest) {
   const data = normalized.data;
   const duplicate = await prisma.listingSubmission.findFirst({
     where: {
-      submittedById: userId,
+      submittedById: user.id,
       url: data.url,
       status: { in: ["pending_review", "needs_changes", "published"] },
     },
@@ -101,7 +119,7 @@ export async function POST(request: NextRequest) {
 
     const existing = await prisma.organization.findFirst({
       where: {
-        ownerId: userId,
+        ownerId: user.id,
         name: data.organizationName,
       },
       select: organizationSelect,
@@ -121,7 +139,7 @@ export async function POST(request: NextRequest) {
           name: data.organizationName,
           type: data.organizationType,
           website: data.organizationWebsite ?? null,
-          ownerId: userId,
+          ownerId: user.id,
         },
         select: organizationSelect,
       }));
@@ -148,7 +166,7 @@ export async function POST(request: NextRequest) {
 
   const submission = await prisma.listingSubmission.create({
     data: {
-      submittedById: userId,
+      submittedById: user.id,
       organizationId,
       type: data.type,
       title: data.title,

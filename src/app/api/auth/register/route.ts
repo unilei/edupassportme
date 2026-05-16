@@ -3,11 +3,17 @@ import { hash } from "bcryptjs";
 import { prisma } from "@/lib/prisma";
 import { createVerificationToken } from "@/lib/tokens";
 import { sendMail, emailVerificationTemplate } from "@/lib/email";
+import { isAccountType, normalizeAccountType } from "@/lib/account-types";
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { email, password, name } = body as { email?: string; password?: string; name?: string };
+    const { email, password, name, accountType } = body as {
+      email?: string;
+      password?: string;
+      name?: string;
+      accountType?: unknown;
+    };
 
     if (!email || !password) {
       return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
@@ -15,6 +21,10 @@ export async function POST(request: NextRequest) {
 
     if (password.length < 6) {
       return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
+    }
+
+    if (accountType !== undefined && !isAccountType(accountType)) {
+      return NextResponse.json({ error: "Choose a valid account type." }, { status: 400 });
     }
 
     const existing = await prisma.appUser.findUnique({ where: { email } });
@@ -29,9 +39,10 @@ export async function POST(request: NextRequest) {
         email,
         passwordHash,
         name: name || null,
+        accountType: normalizeAccountType(accountType),
         profile: { create: {} },
       },
-      select: { id: true, email: true, name: true },
+      select: { id: true, email: true, name: true, accountType: true },
     });
 
     // Send verification email

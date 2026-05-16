@@ -2,6 +2,11 @@ import { type NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  canUseDealProgram,
+  getSessionAccountType,
+  type AccountType,
+} from "@/lib/account-types";
 import { isValidEmail, sanitizeText } from "@/lib/sanitize";
 
 const ACTIVE_DEAL_PROGRAM_STATUSES = ["pending", "approved", "invited", "active"] as const;
@@ -19,13 +24,19 @@ type NormalizeResult =
   | { ok: true; data: NormalizedDealProgramInput }
   | { ok: false; error: string };
 
-async function getUserId(): Promise<string | null> {
+type DealProgramSessionUser = {
+  id: string;
+  accountType: AccountType;
+};
+
+async function getDealProgramSessionUser(): Promise<DealProgramSessionUser | null> {
   const session = await getServerSession(authOptions);
   const user = session?.user as Record<string, unknown> | undefined;
   const id = user?.id as string | undefined;
   const role = user?.role as string | undefined;
 
-  return id && id !== "admin" && role !== "admin" ? id : null;
+  if (!id || id === "admin" || role === "admin") return null;
+  return { id, accountType: getSessionAccountType(user) };
 }
 
 function cleanString(value: unknown, maxLength: number) {
@@ -89,11 +100,18 @@ function normalizeDealProgramInput(input: Record<string, unknown>): NormalizeRes
 }
 
 export async function GET() {
-  const userId = await getUserId();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await getDealProgramSessionUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  if (!canUseDealProgram(user.accountType)) {
+    return NextResponse.json(
+      { error: "Use a partner account to apply for the Deal Program." },
+      { status: 403 },
+    );
+  }
 
   const applications = await prisma.dealProgramApplication.findMany({
-    where: { submittedById: userId },
+    where: { submittedById: user.id },
     orderBy: { createdAt: "desc" },
     select: {
       id: true,
@@ -115,8 +133,15 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
-  const userId = await getUserId();
-  if (!userId) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  const user = await getDealProgramSessionUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  if (!canUseDealProgram(user.accountType)) {
+    return NextResponse.json(
+      { error: "Use a partner account to apply for the Deal Program." },
+      { status: 403 },
+    );
+  }
 
   const body = (await request.json()) as Record<string, unknown>;
   const normalized = normalizeDealProgramInput(body);
@@ -127,7 +152,7 @@ export async function POST(request: NextRequest) {
   const data = normalized.data;
   const existingOrganization = await prisma.organization.findFirst({
     where: {
-      ownerId: userId,
+      ownerId: user.id,
       OR: [
         { name: data.organizationName },
         { website: data.organizationWebsite },
@@ -143,7 +168,7 @@ export async function POST(request: NextRequest) {
         name: data.organizationName,
         website: data.organizationWebsite,
         type: "partner",
-        ownerId: userId,
+        ownerId: user.id,
       },
       select: { id: true },
     }));
@@ -166,7 +191,7 @@ export async function POST(request: NextRequest) {
   const application = await prisma.dealProgramApplication.create({
     data: {
       organizationId: organization.id,
-      submittedById: userId,
+      submittedById: user.id,
       contactName: data.contactName,
       contactEmail: data.contactEmail,
       proposedOffer: data.proposedOffer,

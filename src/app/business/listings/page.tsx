@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ExternalLink, FileText, Loader2, PlusCircle, RefreshCw } from "lucide-react";
-import { AuthRequired, AuthRequiredPrompt } from "@/components/auth/AuthRequired";
+import { AuthRequiredPrompt } from "@/components/auth/AuthRequired";
+import { AccountTypeRequired } from "@/components/auth/AccountTypeRequired";
 import { Button } from "@/components/ui/button";
 
 type BusinessSubmission = {
@@ -322,12 +323,15 @@ function BusinessListingsContent() {
 
 export default function BusinessListingsPage() {
   return (
-    <AuthRequired
+    <AccountTypeRequired
+      allowed={["organization", "partner"]}
       callbackUrl="/business/listings"
       title="Sign in to view business listings"
       description="Listing management is available to organization owner accounts."
+      blockedTitle="Business account required"
+      blockedDescription="Use an organization or partner account to manage marketplace listings."
     >
       <BusinessListingsContent />
-    </AuthRequired>
+    </AccountTypeRequired>
   );
 }

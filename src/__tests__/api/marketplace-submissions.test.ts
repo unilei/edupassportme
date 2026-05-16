@@ -52,7 +52,7 @@ function postRequest(body: unknown) {
 describe("/api/marketplace/submissions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.getServerSession.mockResolvedValue({ user: { id: "user_1" } });
+    mocks.getServerSession.mockResolvedValue({ user: { id: "user_1", accountType: "organization" } });
     mocks.organizationFindFirst.mockResolvedValue(null);
     mocks.organizationCreate.mockResolvedValue({
       id: "org_1",
@@ -93,6 +93,46 @@ describe("/api/marketplace/submissions", () => {
     expect(res.status).toBe(401);
     expect(await res.json()).toEqual({ error: "Unauthorized" });
     expect(mocks.listingSubmissionFindMany).not.toHaveBeenCalled();
+  });
+
+  it("rejects student accounts from organization submissions", async () => {
+    mocks.getServerSession.mockResolvedValue({ user: { id: "student_1", accountType: "student" } });
+
+    const res = await POST(
+      postRequest({
+        type: "job",
+        title: "STEM Program Manager",
+        description: "Lead STEM programming for high school students.",
+        url: "https://example.org/jobs/stem-manager",
+        organizationName: "Example School",
+      }),
+    );
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({
+      error: "Use an organization account to submit marketplace opportunities.",
+    });
+    expect(mocks.listingSubmissionCreate).not.toHaveBeenCalled();
+  });
+
+  it("rejects partner accounts from general opportunity submissions", async () => {
+    mocks.getServerSession.mockResolvedValue({ user: { id: "partner_1", accountType: "partner" } });
+
+    const res = await POST(
+      postRequest({
+        type: "event",
+        title: "Campus Career Fair",
+        description: "Meet employers on campus.",
+        url: "https://example.org/events/career-fair",
+        organizationName: "Example Partner",
+      }),
+    );
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({
+      error: "Use the Deal Program workflow for partner offers.",
+    });
+    expect(mocks.listingSubmissionCreate).not.toHaveBeenCalled();
   });
 
   it("creates an organization and pending submission for the current user", async () => {

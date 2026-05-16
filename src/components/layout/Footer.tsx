@@ -11,6 +11,7 @@ const footerLinks = {
     { href: "/deals", label: "Deals" },
   ],
   Resources: [
+    { href: "/guide", label: "User Guide" },
     { href: "/workspace", label: "Workspace" },
     { href: "/submit-opportunity", label: "Submit Opportunity" },
     { href: "/deal-program", label: "Deal Program" },

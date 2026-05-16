@@ -98,7 +98,7 @@ function AdminLayoutInner({ children }: { children: React.ReactNode }) {
             variant="ghost"
             size="sm"
             className="w-full justify-start text-muted-foreground"
-            onClick={() => signOut({ callbackUrl: "/" })}
+            onClick={() => signOut({ callbackUrl: "/", redirect: true })}
           >
             <LogOut className="h-4 w-4 mr-2" />
             Sign Out

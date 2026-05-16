@@ -46,6 +46,7 @@ describe("user-login credentials provider", () => {
       name: "New User",
       role: "user",
       tier: "free",
+      accountType: "student",
       emailVerified: false,
       banned: false,
     });
@@ -62,6 +63,7 @@ describe("user-login credentials provider", () => {
       name: "Banned User",
       role: "user",
       tier: "free",
+      accountType: "student",
       emailVerified: true,
       banned: true,
     });
@@ -74,6 +76,7 @@ describe("user-login credentials provider", () => {
     mockFindUnique.mockResolvedValue({
       role: "pro",
       tier: "pro",
+      accountType: "organization",
       banned: false,
     });
 
@@ -81,10 +84,29 @@ describe("user-login credentials provider", () => {
       token: { userId: "user-1", role: "user", tier: "free" },
     } as never);
 
-    expect(token).toMatchObject({ role: "pro", tier: "pro" });
+    expect(token).toMatchObject({ role: "pro", tier: "pro", accountType: "organization" });
     expect(mockFindUnique).toHaveBeenCalledWith({
       where: { id: "user-1" },
-      select: { role: true, tier: true, banned: true },
+      select: { role: true, tier: true, accountType: true, banned: true },
+    });
+  });
+
+  it("exposes account type on the session", async () => {
+    const session = await authOptions.callbacks?.session?.({
+      session: { user: { email: "owner@test.com" }, expires: "2026-05-17T00:00:00.000Z" },
+      token: {
+        userId: "user-1",
+        role: "user",
+        tier: "free",
+        accountType: "partner",
+      },
+    } as never);
+
+    expect(session?.user).toMatchObject({
+      id: "user-1",
+      role: "user",
+      tier: "free",
+      accountType: "partner",
     });
   });
 });

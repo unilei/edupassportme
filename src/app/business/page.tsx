@@ -11,7 +11,8 @@ import {
   Send,
   Users,
 } from "lucide-react";
-import { AuthRequired, AuthRequiredPrompt } from "@/components/auth/AuthRequired";
+import { AuthRequiredPrompt } from "@/components/auth/AuthRequired";
+import { AccountTypeRequired } from "@/components/auth/AccountTypeRequired";
 import { Button } from "@/components/ui/button";
 
 type BusinessOrganization = {
@@ -282,12 +283,15 @@ function BusinessDashboardContent() {
 
 export default function BusinessDashboardPage() {
   return (
-    <AuthRequired
+    <AccountTypeRequired
+      allowed={["organization", "partner"]}
       callbackUrl="/business"
       title="Sign in to open Business Workspace"
       description="Business tools are available to organization owner accounts."
+      blockedTitle="Business account required"
+      blockedDescription="Use an organization or partner account to manage marketplace supply."
     >
       <BusinessDashboardContent />
-    </AuthRequired>
+    </AccountTypeRequired>
   );
 }

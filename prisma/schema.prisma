@@ -250,6 +250,12 @@ model Deal {
 // NEW: User & personalization models
 // ---------------------------------------------------------------------------
 
+enum AccountType {
+  student
+  organization
+  partner
+}
+
 model AppUser {
   id                   String                   @id @default(cuid())
   email                String                   @unique
@@ -258,6 +264,7 @@ model AppUser {
   avatar               String?
   role                 String                   @default("user") // user | pro | admin
   tier                 String                   @default("free") // free | pro
+  accountType          AccountType              @default(student)
   proExpiresAt         DateTime?
   emailVerified        Boolean                  @default(false)
   banned               Boolean                  @default(false)

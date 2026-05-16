@@ -39,7 +39,9 @@ function patchRequest(body: unknown) {
 describe("/api/business/applications", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.getServerSession.mockResolvedValue({ user: { id: "owner_1", role: "user" } });
+    mocks.getServerSession.mockResolvedValue({
+      user: { id: "owner_1", role: "user", accountType: "organization" },
+    });
     mocks.applicationFindMany.mockResolvedValue([
       {
         id: "app_1",
@@ -79,6 +81,13 @@ describe("/api/business/applications", () => {
 
     expect(admin.status).toBe(401);
     expect(await admin.json()).toEqual({ error: "Unauthorized" });
+
+    mocks.getServerSession.mockResolvedValue({ user: { id: "student_1", accountType: "student" } });
+
+    const student = await GET();
+
+    expect(student.status).toBe(403);
+    expect(await student.json()).toEqual({ error: "Business account required" });
     expect(mocks.applicationFindMany).not.toHaveBeenCalled();
     expect(mocks.applicationUpdateMany).not.toHaveBeenCalled();
   });
