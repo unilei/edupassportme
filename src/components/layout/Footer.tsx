@@ -11,10 +11,11 @@ const footerLinks = {
     { href: "/deals", label: "Deals" },
   ],
   Resources: [
-    { href: "/category", label: "Categories" },
-    { href: "/tag", label: "Tags" },
+    { href: "/workspace", label: "Workspace" },
+    { href: "/submit-opportunity", label: "Submit Opportunity" },
+    { href: "/deal-program", label: "Deal Program" },
     { href: "/pricing", label: "Pricing" },
-    { href: "/about", label: "About Us" },
+    { href: "/business", label: "Business Workspace" },
   ],
   Legal: [
     { href: "/privacy", label: "Privacy Policy" },
@@ -41,7 +42,7 @@ export function Footer() {
               <BrandLogo textClassName="text-lg" />
             </Link>
             <p className="text-sm text-muted-foreground max-w-sm leading-relaxed mb-6">
-              Discover the best learning resources, online courses, and educational tools for students, educators, and lifelong learners.
+              Find education opportunities across courses, jobs, events, and student deals, then keep every next step moving in one workspace.
             </p>
             <div className="flex items-center gap-3">
               {socialLinks.map((social) => {
