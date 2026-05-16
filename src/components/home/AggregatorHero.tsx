@@ -104,6 +104,11 @@ export function AggregatorHero() {
               Submit Opportunity
             </Button>
           </Link>
+          <Link href="/deal-program">
+            <Button size="lg" variant="ghost" className="h-11 px-6">
+              Deal Program
+            </Button>
+          </Link>
         </div>
 
         {/* Popular searches */}

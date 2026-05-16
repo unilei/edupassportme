@@ -14,11 +14,11 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
 export const metadata: Metadata = {
   title: {
-    default: `${SITE_NAME} — Discover the Best Learning Resources & Educational Tools`,
+    default: `${SITE_NAME} — Education Opportunity Marketplace`,
     template: `%s | ${SITE_NAME}`,
   },
   description:
-    "Curated directory of the best online courses, learning platforms, and educational tools for students, educators, and lifelong learners.",
+    "Find and manage education opportunities across courses, jobs, events, and student deals. Students track next steps while organizations submit listings and partner offers.",
   metadataBase: new URL(siteUrl),
   manifest: "/manifest.json",
   icons: {

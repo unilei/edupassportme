@@ -7,7 +7,8 @@ import { ListingCard } from "@/components/listing/ListingCard";
 import { DealCard } from "@/components/home/DealCard";
 import { ItemGrid } from "@/components/item/ItemGrid";
 import { NewsletterSection } from "@/components/home/NewsletterSection";
-import { ArrowRight, Sparkles, Target, CalendarClock, CheckCircle2 } from "lucide-react";
+import { MarketplaceLaunchSection } from "@/components/home/MarketplaceLaunchSection";
+import { ArrowRight, Sparkles } from "lucide-react";
 import { activeListingWhere } from "@/lib/listing-visibility";
 
 export const dynamic = "force-dynamic";
@@ -83,48 +84,7 @@ async function HomeContent() {
         providerCount={providerCount}
       />
 
-      <section className="border-y bg-muted/30">
-        <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:px-6 lg:grid-cols-[1.15fr_0.85fr] lg:px-8">
-          <div>
-            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
-              <Target className="h-3.5 w-3.5" />
-              Marketplace to workspace
-            </div>
-            <h2 className="text-2xl font-bold">Turn marketplace discovery into a focused opportunity workflow.</h2>
-            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Browse learning, career, event, and partner opportunities, then use Workspace to track priority, status, deadlines, applications, and reminders.
-            </p>
-            <div className="mt-5 flex flex-wrap gap-3">
-              <Link href="/workspace" className="inline-flex items-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90">
-                Open Workspace <ArrowRight className="h-4 w-4" />
-              </Link>
-              <Link href="/saved" className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-medium hover:bg-background">
-                Manage Saved
-              </Link>
-            </div>
-          </div>
-          <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-            {[
-              { icon: Target, label: "Personal fit", text: "Recommendations explain why an opportunity matches." },
-              { icon: CalendarClock, label: "Next action", text: "Set a deadline or reminder as soon as you save." },
-              { icon: CheckCircle2, label: "Track progress", text: "Move opportunities from saved to applied or completed." },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <div key={item.label} className="flex items-start gap-3">
-                  <div className="mt-0.5 rounded-lg bg-primary/10 p-2 text-primary">
-                    <Icon className="h-4 w-4" />
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold">{item.label}</p>
-                    <p className="text-xs text-muted-foreground">{item.text}</p>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
+      <MarketplaceLaunchSection />
 
       {/* Featured Courses */}
       <section className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-14">
