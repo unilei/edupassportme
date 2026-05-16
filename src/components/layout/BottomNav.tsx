@@ -2,15 +2,32 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Search, Sparkles, Heart, User } from "lucide-react";
+import { Building2, FileText, Handshake, Heart, Home, Search, Send, Sparkles, User } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useI18n } from "@/lib/i18n/context";
+import { getSessionAccountType } from "@/lib/account-types";
 
-const navItems = [
+const individualNavItems = [
   { href: "/", icon: Home, key: "home" },
   { href: "/search", icon: Search, key: "search" },
   { href: "/for-you", icon: Sparkles, key: "nav.forYou" },
   { href: "/saved", icon: Heart, key: "nav.saved" },
+  { href: "/profile", icon: User, key: "nav.profile" },
+] as const;
+
+const organizationNavItems = [
+  { href: "/", icon: Home, key: "home" },
+  { href: "/search", icon: Search, key: "search" },
+  { href: "/business", icon: Building2, key: "nav.business" },
+  { href: "/submit-opportunity", icon: Send, key: "nav.submitOpportunity" },
+  { href: "/profile", icon: User, key: "nav.profile" },
+] as const;
+
+const partnerNavItems = [
+  { href: "/", icon: Home, key: "home" },
+  { href: "/search", icon: Search, key: "search" },
+  { href: "/deal-program", icon: Handshake, key: "nav.dealProgram" },
+  { href: "/business", icon: FileText, key: "nav.business" },
   { href: "/profile", icon: User, key: "nav.profile" },
 ] as const;
 
@@ -26,9 +43,15 @@ export function BottomNav() {
 
   const userId = (session?.user as Record<string, unknown> | undefined)?.id as string | undefined;
   const isUser = !!userId && userId !== "admin";
+  const accountType = getSessionAccountType(session?.user);
 
   // Last item links to profile if logged in, sign-in if not
   const profileHref = isUser ? "/profile" : "/auth/signin";
+  const navItems = isUser && accountType === "organization"
+    ? organizationNavItems
+    : isUser && accountType === "partner"
+      ? partnerNavItems
+      : individualNavItems;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t bg-background/95 backdrop-blur md:hidden safe-area-bottom">

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Heart } from "lucide-react";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
+import { getSessionAccountType } from "@/lib/account-types";
 
 interface SaveButtonProps {
   listingId: string;
@@ -29,6 +30,11 @@ export function SaveButton({ listingId, initialSaved = false, size = "sm" }: Sav
       return;
     }
 
+    if (getSessionAccountType(session.user) !== "individual") {
+      setError("Use an individual account to save opportunities.");
+      return;
+    }
+
     setLoading(true);
     setError("");
     const res = await fetch("/api/user/saved", {
@@ -45,7 +51,12 @@ export function SaveButton({ listingId, initialSaved = false, size = "sm" }: Sav
       if (data?.code === "SAVE_LIMIT_REACHED") {
         setError(data.error || "Free accounts can track up to 20 opportunities.");
         router.push("/pricing");
+      } else {
+        setError(data?.error || "Unable to save this opportunity.");
       }
+    } else {
+      const data = await res.json().catch(() => null) as { error?: string } | null;
+      setError(data?.error || "Unable to save this opportunity.");
     }
     setLoading(false);
   };

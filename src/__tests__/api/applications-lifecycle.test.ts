@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { NextRequest } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
 const mocks = vi.hoisted(() => ({
   getServerSession: vi.fn(),
@@ -71,6 +71,21 @@ describe("/api/user/applications lifecycle", () => {
         candidateNote: "I can bring my portfolio.",
       }),
     });
+  });
+
+  it("rejects non-individual accounts before updating applications", async () => {
+    mockRequireIndividualUser.mockResolvedValue(
+      NextResponse.json({ error: "Individual account required" }, { status: 403 }),
+    );
+
+    const res = await PATCH(patchRequest({
+      applicationId: "app_1",
+      status: "interview_scheduled",
+    }));
+
+    expect(res.status).toBe(403);
+    expect(await res.json()).toEqual({ error: "Individual account required" });
+    expect(mocks.applicationUpdateMany).not.toHaveBeenCalled();
   });
 
   it("rejects unknown application statuses", async () => {

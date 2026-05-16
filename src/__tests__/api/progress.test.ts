@@ -61,6 +61,16 @@ describe("/api/user/progress", () => {
       expect(res.status).toBe(401);
     });
 
+    it("should return 403 when a non-individual account requests progress", async () => {
+      mockRequireIndividualUser.mockResolvedValue(
+        NextResponse.json({ error: "Individual account required" }, { status: 403 }),
+      );
+
+      const res = await GET(new NextRequest("http://localhost:3000/api/user/progress"));
+      expect(res.status).toBe(403);
+      expect(await res.json()).toEqual({ error: "Individual account required" });
+    });
+
     it("should return progress items and stats", async () => {
       mockLearningProgressFindMany.mockResolvedValue([
         { id: "lp1", status: "enrolled", progress: 0, listing: { id: "l1", title: "Test", slug: "test", type: "course", image: null, provider: { name: "Udemy" } } },

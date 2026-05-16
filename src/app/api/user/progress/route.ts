@@ -8,7 +8,7 @@ import { activeListingWhere } from "@/lib/listing-visibility";
 export async function GET(req: NextRequest) {
   const user = await requireIndividualUser();
   if (isAuthError(user)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return user;
   }
 
   const uid = user.userId;
@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await requireIndividualUser();
   if (isAuthError(user)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return user;
   }
 
   const uid = user.userId;
@@ -130,7 +130,7 @@ export async function POST(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const user = await requireIndividualUser();
   if (isAuthError(user)) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    return user;
   }
 
   const uid = user.userId;
