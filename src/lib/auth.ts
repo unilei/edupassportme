@@ -4,6 +4,11 @@ import { compare } from "bcryptjs";
 import { normalizeAccountType } from "@/lib/account-types";
 import { prisma } from "@/lib/prisma";
 
+function serializeDate(value: Date | string | null | undefined) {
+  if (!value) return null;
+  return value instanceof Date ? value.toISOString() : value;
+}
+
 export const authOptions: NextAuthOptions = {
   providers: [
     // Admin login (password only)
@@ -40,6 +45,7 @@ export const authOptions: NextAuthOptions = {
 
         const user = await prisma.appUser.findUnique({
           where: { email: credentials.email },
+          include: { profile: { select: { onboardingCompletedAt: true } } },
         });
         if (!user) return null;
 
@@ -61,6 +67,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           tier: user.tier,
           accountType: normalizeAccountType(user.accountType),
+          onboardingCompletedAt: serializeDate(user.profile?.onboardingCompletedAt),
         };
       },
     }),
@@ -79,6 +86,7 @@ export const authOptions: NextAuthOptions = {
         token.role = u.role as string;
         token.tier = (u.tier as string) || "free";
         token.accountType = normalizeAccountType(u.accountType);
+        token.onboardingCompletedAt = serializeDate(u.onboardingCompletedAt as Date | string | null | undefined);
         return token;
       }
 
@@ -86,7 +94,13 @@ export const authOptions: NextAuthOptions = {
       if (userId && userId !== "admin") {
         const currentUser = await prisma.appUser.findUnique({
           where: { id: userId },
-          select: { role: true, tier: true, accountType: true, banned: true },
+          select: {
+            role: true,
+            tier: true,
+            accountType: true,
+            banned: true,
+            profile: { select: { onboardingCompletedAt: true } },
+          },
         });
         if (currentUser) {
           token.role = currentUser.banned ? "user" : currentUser.role;
@@ -94,6 +108,9 @@ export const authOptions: NextAuthOptions = {
           token.accountType = currentUser.banned
             ? "individual"
             : normalizeAccountType(currentUser.accountType);
+          token.onboardingCompletedAt = currentUser.banned
+            ? null
+            : serializeDate(currentUser.profile?.onboardingCompletedAt);
           token.banned = currentUser.banned;
         }
       }
@@ -106,6 +123,14 @@ export const authOptions: NextAuthOptions = {
         u.role = token.role;
         u.tier = token.tier;
         u.accountType = normalizeAccountType(token.accountType);
+        const onboardingCompletedAt = typeof token.onboardingCompletedAt === "string"
+          ? token.onboardingCompletedAt
+          : null;
+        u.onboardingCompletedAt = onboardingCompletedAt;
+        u.profile = {
+          ...((u.profile && typeof u.profile === "object") ? u.profile as Record<string, unknown> : {}),
+          onboardingCompletedAt,
+        };
       }
       return session;
     },

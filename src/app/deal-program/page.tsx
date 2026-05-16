@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState, type ChangeEvent, type FormEvent } fr
 import { useSession } from "next-auth/react";
 import { ArrowRight, ClipboardList, Loader2, RefreshCw, Send, ShieldAlert } from "lucide-react";
 import { canUseDealProgram, getSessionAccountType } from "@/lib/account-types";
+import { OnboardingRequired } from "@/components/auth/AccountTypeRequired";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -226,6 +227,7 @@ export default function DealProgramPage() {
   }
 
   return (
+    <OnboardingRequired accountType={accountType}>
     <div className="mx-auto max-w-6xl px-4 py-10 sm:px-6 lg:px-8">
       <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
@@ -413,5 +415,6 @@ export default function DealProgramPage() {
         </Card>
       </div>
     </div>
+    </OnboardingRequired>
   );
 }

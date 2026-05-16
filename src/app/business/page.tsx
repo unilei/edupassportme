@@ -290,6 +290,7 @@ export default function BusinessDashboardPage() {
       description="Business tools are available to organization owner accounts."
       blockedTitle="Business account required"
       blockedDescription="Use an organization or partner account to manage marketplace supply."
+      requireOnboarding
     >
       <BusinessDashboardContent />
     </AccountTypeRequired>

@@ -5,6 +5,7 @@ import { useState, type ChangeEvent, type FormEvent } from "react";
 import { useSession } from "next-auth/react";
 import { ArrowRight, Loader2, Send, ShieldAlert, Sparkles } from "lucide-react";
 import { canSubmitOpportunities, getSessionAccountType } from "@/lib/account-types";
+import { OnboardingRequired } from "@/components/auth/AccountTypeRequired";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -166,6 +167,7 @@ export default function SubmitOpportunityPage() {
   }
 
   return (
+    <OnboardingRequired accountType={accountType}>
     <div className="mx-auto max-w-5xl px-4 py-12 sm:px-6 lg:px-8">
       <div className="mb-8">
         <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
@@ -272,5 +274,6 @@ export default function SubmitOpportunityPage() {
         </div>
       </form>
     </div>
+    </OnboardingRequired>
   );
 }

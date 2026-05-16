@@ -54,6 +54,24 @@ export function getSessionAccountType(user: unknown): AccountType {
   return normalizeAccountType((user as Record<string, unknown>).accountType);
 }
 
+export function getSessionOnboardingCompletedAt(user: unknown): string | null {
+  if (!user || typeof user !== "object") return null;
+
+  const record = user as Record<string, unknown>;
+  const profile = record.profile && typeof record.profile === "object"
+    ? record.profile as Record<string, unknown>
+    : null;
+  const value = record.onboardingCompletedAt ?? profile?.onboardingCompletedAt;
+
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "string" && value.trim()) return value;
+  return null;
+}
+
+export function hasCompletedOnboarding(user: unknown) {
+  return Boolean(getSessionOnboardingCompletedAt(user));
+}
+
 export function canUseIndividualWorkspace(accountType: AccountType) {
   return accountType === "individual";
 }

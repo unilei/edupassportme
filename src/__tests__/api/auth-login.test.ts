@@ -78,16 +78,28 @@ describe("user-login credentials provider", () => {
       tier: "pro",
       accountType: "organization",
       banned: false,
+      profile: { onboardingCompletedAt: new Date("2026-05-16T00:00:00.000Z") },
     });
 
     const token = await refreshJwt?.({
       token: { userId: "user-1", role: "user", tier: "free" },
     } as never);
 
-    expect(token).toMatchObject({ role: "pro", tier: "pro", accountType: "organization" });
+    expect(token).toMatchObject({
+      role: "pro",
+      tier: "pro",
+      accountType: "organization",
+      onboardingCompletedAt: "2026-05-16T00:00:00.000Z",
+    });
     expect(mockFindUnique).toHaveBeenCalledWith({
       where: { id: "user-1" },
-      select: { role: true, tier: true, accountType: true, banned: true },
+      select: {
+        role: true,
+        tier: true,
+        accountType: true,
+        banned: true,
+        profile: { select: { onboardingCompletedAt: true } },
+      },
     });
   });
 
@@ -97,6 +109,7 @@ describe("user-login credentials provider", () => {
       tier: "free",
       accountType: "student",
       banned: false,
+      profile: { onboardingCompletedAt: null },
     });
 
     const token = await refreshJwt?.({
@@ -114,6 +127,7 @@ describe("user-login credentials provider", () => {
         role: "user",
         tier: "free",
         accountType: "partner",
+        onboardingCompletedAt: "2026-05-16T00:00:00.000Z",
       },
     } as never);
 
@@ -122,6 +136,8 @@ describe("user-login credentials provider", () => {
       role: "user",
       tier: "free",
       accountType: "partner",
+      onboardingCompletedAt: "2026-05-16T00:00:00.000Z",
+      profile: { onboardingCompletedAt: "2026-05-16T00:00:00.000Z" },
     });
   });
 

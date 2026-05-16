@@ -330,6 +330,7 @@ export default function BusinessListingsPage() {
       description="Listing management is available to organization owner accounts."
       blockedTitle="Business account required"
       blockedDescription="Use an organization or partner account to manage marketplace listings."
+      requireOnboarding
     >
       <BusinessListingsContent />
     </AccountTypeRequired>

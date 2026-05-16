@@ -432,6 +432,7 @@ export default function BusinessApplicationsPage() {
       description="Applicant management is available to organization owner accounts."
       blockedTitle="Business account required"
       blockedDescription="Use an organization or partner account to manage applicant pipelines."
+      requireOnboarding
     >
       <BusinessApplicationsContent />
     </AccountTypeRequired>
